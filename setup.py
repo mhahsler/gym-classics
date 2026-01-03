@@ -8,11 +8,14 @@ setuptools.setup(
     version="1.0.0",
     author="Brett Daley",
     author_email="brett.daley@ualberta.ca",
+    #description="Classic environments for reinforcement learning and dynamic"
+    #            " programming, implemented in OpenAI Gym and Gymnasium.",
     description="Classic environments for reinforcement learning and dynamic"
-                " programming, implemented in OpenAI Gym and Gymnasium.",
+                " programming, implemented in OpenAI Gym and Gymnasium. Adapted by Michael Hahsler",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/brett-daley/gym-classics",
+    #url="https://github.com/brett-daley/gym-classics",
+    url="https://github.com/mhahsler/gym-classics",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

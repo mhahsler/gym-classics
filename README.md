@@ -3,6 +3,19 @@
 [![license](https://img.shields.io/badge/license-GPL%20v3.0-blue)](./LICENSE)
 ![python](https://img.shields.io/badge/python-3.5%2B-green)
 
+### Note: This is a modified version to include some extra features. 
+
+How to install:
+
+```
+git clone https://github.com/mhahsler/gym-classics.git
+cd gym-classics
+python setup.py install
+```
+
+### Back to the original Readme  
+
+
 Gym Classics is a collection of well-known discrete MDPs from the reinforcement learning
 literature implemented as OpenAI Gym environments.
 API support for dynamic programming is also provided.
