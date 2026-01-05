@@ -71,6 +71,10 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
 
 ### Policy Iteration
 
+def random_policy(env):
+    return np.random.choice(env.actions(), size=len(env.states()))
+
+
 def policy_evaluation(env, discount, policy, precision=1e-3, max_backups=1000):
     assert 0.0 <= discount <= 1.0
     assert precision > 0.0
@@ -88,7 +92,6 @@ def policy_evaluation(env, discount, policy, precision=1e-3, max_backups=1000):
         max_backups -= 1
     return V
 
-
 def policy_improvement(env, discount, policy, V_policy, precision=1e-3):
     policy_old = policy.copy()
     V_old = V_policy.copy()
@@ -105,8 +108,22 @@ def policy_improvement(env, discount, policy, V_policy, precision=1e-3):
 
     return policy, stable
 
-def random_policy(env):
-    return np.random.choice(env.actions(), size=len(env.states()))
+
+def greedy_policy(env, V, discount=1):
+    """
+    Calculate the greedy policy for a given value function.
+    
+    :param env: the environment
+    :param V: the value function
+    :param discount: discount factor
+    """
+    policy = np.zeros(len(env.states()))
+
+    for s in env.states():
+        Q_values = [backup(env, discount, V, s, a) for a in env.actions()]
+        policy[s] = np.argmax(Q_values)
+
+    return policy
 
 def policy_iteration(env, discount, precision=1e-3, max_backups=1000, history = False, verbose = False):
     assert 0.0 <= discount <= 1.0

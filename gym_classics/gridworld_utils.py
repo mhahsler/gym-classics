@@ -115,7 +115,7 @@ def gridworld_image_list(env, Vs = None, policies = None, cmap = 'bwr', origin='
         if not policies is None:
             policy = policies[i]    
 
-        gridworld_image(env, V, policy=policy, title=f'After Sweep {i}', cmap=cmap, origin=origin)    
+        gridworld_image(env, V, policy=policy, title=f'After Iteration {i}', cmap=cmap, origin=origin)    
 
 
 def convert_policy_to_symbols(env, policy):
@@ -128,7 +128,7 @@ def convert_policy_to_symbols(env, policy):
     return [action_symbols.get(a, '?') for a in policy]
 
 
-def gridworld_animation(env, Vs, interval = 1000, repeat=False, cmap = 'bwr', origin='lower'):
+def gridworld_animation(env, Vs, policies = None, interval = 1000, repeat=False, cmap = 'bwr', origin='lower'):
     """
     Create an animation showing the evolution of value functions in a gridworld.
 
@@ -141,8 +141,12 @@ def gridworld_animation(env, Vs, interval = 1000, repeat=False, cmap = 'bwr', or
     """
     mazes = [gridworld_to_matrix(env, V) for V in Vs]
 
+    if not policies is None:
+        policies = [gridworld_to_matrix(env, convert_policy_to_symbols(env, policy)) for policy in policies]
+
     fig, ax = plt.subplots()
     im = ax.imshow(mazes[0], cmap=cmap, origin=origin)
+
 
     ax.set_xticks(np.arange(mazes[0].shape[1]))
     ax.set_yticks(np.arange(mazes[0].shape[0]))
@@ -154,12 +158,21 @@ def gridworld_animation(env, Vs, interval = 1000, repeat=False, cmap = 'bwr', or
     ax.grid(which='minor', color='black', linestyle='-', linewidth=1)
 
     title = ax.set_title("")
+    labels = None
 
     plt.colorbar(im, ax=ax)
 
     def step(i):
         im = ax.imshow(mazes[i], cmap=cmap, origin=origin)
-        title.set_text(f'After Sweep {i}')
+        title.set_text(f'After Iteration {i}')
+        
+        if not policies is None:
+            labels = policies[i]
+            for text_artist in ax.texts:
+                text_artist.remove()
+            for (j, i), label in np.ndenumerate(labels):
+                ax.text(i, j, label, ha='center', va='center', color='black', fontsize=10)
+    
         return im, title,
 
     ani = animation.FuncAnimation(
