@@ -5,7 +5,8 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name="gym-classics",
-    version="1.0.0",
+    #version="1.0.0",
+    version="1.0.0+internal.rev1",
     author="Brett Daley",
     author_email="brett.daley@ualberta.ca",
     #description="Classic environments for reinforcement learning and dynamic"
