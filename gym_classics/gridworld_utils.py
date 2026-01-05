@@ -8,6 +8,8 @@ from matplotlib import animation, rc
 from IPython.display import HTML
 rc('animation', html='html5')
 
+### Visualization functions
+
 def gridworld_to_matrix(env, value):
     """Converts a vector with values for states in a gridworld to a matrix for display. Values can be a value function, policy, etc.
     
@@ -16,6 +18,8 @@ def gridworld_to_matrix(env, value):
 
     return: The value function as a matrix.
     """
+    
+    value = np.array(value)
     m = np.zeros(env.dims, dtype=value.dtype)
 
     for y in range(env.dims[1]):
@@ -25,11 +29,10 @@ def gridworld_to_matrix(env, value):
                 s = env.encode(state)
                 m[x,y] = value[s]
             else:
-                m[x,y] = np.nan
+                pass
 
     return m.transpose()
 
-### Visualization functions
 
 def image(m, labels=None, title=None,  cmap = 'bwr', origin='lower'):
     
@@ -63,13 +66,15 @@ def image(m, labels=None, title=None,  cmap = 'bwr', origin='lower'):
     plt.title(title)
     plt.show()
 
-def gridworld_value_image(env, V=None, labels=None, title=None, cmap = 'bwr', origin='lower'):
+
+def gridworld_image(env, V=None, labels=None, policy=None, title=None, cmap = 'bwr', origin='lower'):
     """
     Display the a gridworld as an image.
     
     :param env: The gridworld environment.
     :param value: The value (e.g., a value function) to display. If None, display state indices.
     :param labels: The labels to show on the grid cells in the same order as the value function. If True, show rounded values from V.
+    :param policy: The policy to display. If not None, show the policy.
     :param title: Title of the plot.
     :param cmap: Colormap to use for the value function.
     :param origin: 'lower' means (0,0) is at the bottom-left, 'upper' means (0,0) is at the top-left.
@@ -79,8 +84,11 @@ def gridworld_value_image(env, V=None, labels=None, title=None, cmap = 'bwr', or
         m = gridworld_to_matrix(env, V)
     else:
         m = np.zeros(env.dims).transpose()
-        labels = np.array(list(env.states())).astype(str)
+        labels = env.states()
         cmap = None
+
+    if not policy is None:
+        labels = convert_policy_to_symbols(env, policy)
 
     if isinstance(labels, bool) and labels:
             labels = np.round(V, 2)
@@ -90,11 +98,37 @@ def gridworld_value_image(env, V=None, labels=None, title=None, cmap = 'bwr', or
 
     image(m, title=title, labels=labels, cmap=cmap, origin=origin)
 
-def gridworld_values_image(env, Vs, cmap = 'bwr', origin='lower'):
-    for i in range(len(Vs)):
-        gridworld_value_image(env, Vs[i], title=f'After Sweep {i}', cmap=cmap, origin=origin)    
 
-def gridworld_values_animation(env, Vs, interval = 1000, repeat=False, cmap = 'bwr', origin='lower'):
+def gridworld_image_list(env, Vs = None, policies = None, cmap = 'bwr', origin='lower'):
+    n_states = len(env.states())
+    if Vs is not None:
+        iterations = len(Vs)
+    else:
+        iterations = len(policies)
+    
+    V = None
+    policy = None
+
+    for i in range(iterations):
+        if not Vs is None:
+            V = Vs[i]
+        if not policies is None:
+            policy = policies[i]    
+
+        gridworld_image(env, V, policy=policy, title=f'After Sweep {i}', cmap=cmap, origin=origin)    
+
+
+def convert_policy_to_symbols(env, policy):
+    action_symbols = {
+        0: '↑',
+        1: '→',
+        2: '↓',
+        3: '←',
+    }
+    return [action_symbols.get(a, '?') for a in policy]
+
+
+def gridworld_animation(env, Vs, interval = 1000, repeat=False, cmap = 'bwr', origin='lower'):
     """
     Create an animation showing the evolution of value functions in a gridworld.
 

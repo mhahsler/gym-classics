@@ -38,6 +38,10 @@ class BaseEnv(Env, metaclass=ABCMeta):
         self._encoder = {}
         self._decoder = {}
         i = 0
+        
+        # organize the reachable states in a consistent order
+        self._reachable_states = sorted(self._reachable_states)
+        
         for state in self._reachable_states:
             self._encoder[state] = i
             self._decoder[i] = state
