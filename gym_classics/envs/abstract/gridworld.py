@@ -1,11 +1,14 @@
 from gym_classics.envs.abstract.base_env import BaseEnv
 
+import numpy as np
+import matplotlib.pyplot as plt
 
 class Gridworld(BaseEnv):
     """Abstract class for creating gridworld-type environments."""
 
     def __init__(self, layout_string, n_actions=None):
-        self.dims, starts, self._goals, self._blocks = parse_gridworld(layout_string)
+        self.dims, starts, self._goals, self._blocks = parse_gridworld(
+            layout_string)
 
         if n_actions is None:
             n_actions = 4
@@ -40,9 +43,137 @@ class Gridworld(BaseEnv):
     def _generate_transitions(self, state, action):
         yield self._deterministic_step(state, action)
 
+    ### Addition to the interface
+    
+    def encode_action(self, action_label):
+        """Converts a action label into a numeric action ID."""
+        action_ids = {"up": 0, "right": 1, "down": 2, "left": 3}
+        id = action_ids.get(action_label, -1)
+        return id
+
+
+    def decode_action(self, action, type="text"):
+        """Converts a numeric action ID into a label. Choices for type are 'text' and 'arrow'."""
+        action = int(action)
+        
+        if (type == "arrow"):
+             action_labels = ['↑', '→', '↓', '←']
+        else: 
+            action_labels =["up", "right", "down", "left"]
+            
+        return action_labels[action]
+
+    def to_matrix(self, value = None):
+        """Converts a vector with values for states in a gridworld to a matrix for display. Values can be a value function, policy, etc.
+        
+        param value: The value function as a vector.
+
+        return: The value function as a matrix.
+        """
+        
+        if value is None:
+            value = list(self.states())
+        
+        value = np.array(value)
+        m = np.zeros(self.dims, dtype=value.dtype)
+
+        for y in range(self.dims[1]):
+            for x in range(self.dims[0]):
+                state = (x, y)
+                if self.is_reachable(state):
+                    s = self.encode(state)
+                    m[x,y] = value[s]
+                else:
+                    pass
+
+        return m.transpose() 
+    
+    def image(self, V=None, labels=None, policy=None, title=None, cmap = 'bwr', origin='lower'):
+        """
+        Display the a gridworld as an image.
+        
+        :param value: The value (e.g., a value function) to display. If None, display state indices.
+        :param labels: The labels to show on the grid cells in the same order as the value function. If True, show rounded values from V.
+        :param policy: The policy to display. If not None, show the policy.
+        :param title: Title of the plot.
+        :param cmap: Colormap to use for the value function.
+        :param origin: 'lower' means (0,0) is at the bottom-left, 'upper' means (0,0) is at the top-left.
+        """
+        
+        if not V is None:
+            m = self.to_matrix(V)
+        else:
+            m = np.zeros(self.dims).transpose()
+            labels = self.states()
+            cmap = None
+
+        if not policy is None:
+            labels = [self.decode_action(a, type = "arrow") for a in policy]
+
+        if isinstance(labels, bool) and labels:
+                labels = np.round(V, 2)
+
+        if not labels is None:
+            labels = self.to_matrix(labels)
+
+        image(m, title=title, labels=labels, cmap=cmap, origin=origin)  
+        
+        
+    def image_list(self, Vs = None, policies = None, cmap = 'bwr', origin='lower'):
+        n_states = len(self.states())
+        if Vs is not None:
+            iterations = len(Vs)
+        else:
+            iterations = len(policies)
+        
+        V = None
+        policy = None
+
+        for i in range(iterations):
+            if not Vs is None:
+                V = Vs[i]
+            if not policies is None:
+                policy = policies[i]    
+
+            self.image(V, policy=policy, title=f'After Iteration {i}', cmap=cmap, origin=origin)  
+
+### helper functions
+def image(m, labels=None, title=None,  cmap = 'bwr', origin='lower'):
+    
+    row_labels = range(m.shape[0])
+    col_labels = range(m.shape[1])
+    
+    fig, ax = plt.subplots()
+    if not cmap is None:
+        im = ax.imshow(m, cmap=cmap, origin=origin)
+    else:
+        im = ax.imshow(np.zeros(m.shape), cmap = 'Grays',  origin=origin)
+
+    ax.set_xticks(np.arange(m.shape[1]))
+    ax.set_yticks(np.arange(m.shape[0]))
+    ax.set_xticklabels(col_labels)
+    ax.set_yticklabels(row_labels)
+
+    num_rows, num_cols = m.shape
+    ax.set_xticks(np.arange(-.5, num_cols, 1), minor=True)
+    ax.set_yticks(np.arange(-.5, num_rows, 1), minor=True)
+    ax.tick_params(which='minor', bottom=False, left=False)
+    ax.grid(which='minor', color='black', linestyle='-', linewidth=1)
+    
+    if not labels is None:
+        for (j, i), label in np.ndenumerate(labels):
+            ax.text(i, j, label, ha='center', va='center', color='black', fontsize=10)
+
+    if not cmap is None:
+        plt.colorbar(im, ax=ax)
+    
+    plt.title(title)
+    plt.show()
+
 
 def parse_gridworld(layout_string):
-    layout_string = layout_string.replace('|', '')  # Remove optional pipe characters
+    layout_string = layout_string.replace(
+        '|', '')  # Remove optional pipe characters
     lines = layout_string.split('\n')
     lines = [l for l in lines if l != '']  # Remove empty lines
 
@@ -59,7 +190,8 @@ def parse_gridworld(layout_string):
 
     for row in range(H):
         for col in range(W):
-            coords = (col, H - 1 - row)  # Makes (0,0) the bottom-left cell in the gridworld
+            # Makes (0,0) the bottom-left cell in the gridworld
+            coords = (col, H - 1 - row)
             char = lines[row][col]
 
             if char == 'S':  # Start (may be more than one)

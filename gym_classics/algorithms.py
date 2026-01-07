@@ -74,6 +74,8 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
 def random_policy(env):
     return np.random.choice(env.actions(), size=len(env.states()))
 
+def encode_policy(env, policy, type = "text"):
+    return [env.encode_action(a, type = type) for a in policy]
 
 def policy_evaluation(env, discount, policy, precision=1e-3, max_backups=1000):
     assert 0.0 <= discount <= 1.0
