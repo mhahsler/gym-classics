@@ -75,7 +75,15 @@ class Gridworld(BaseEnv):
             value = list(self.states())
         
         value = np.array(value)
-        m = np.zeros(self.dims, dtype=value.dtype)
+      
+        if np.issubdtype(value.dtype, np.integer):
+            m = np.full(self.dims, -1, dtype=value.dtype)
+        elif np.issubdtype(value.dtype, np.str_):
+            m = np.full(self.dims, "", dtype=value.dtype)
+        elif np.issubdtype(value.dtype, np.floating):
+            m = np.full(self.dims, np.nan, dtype=value.dtype)
+        else:
+            m = np.zeros(self.dims, dtype=value.dtype)
 
         for y in range(self.dims[1]):
             for x in range(self.dims[0]):
@@ -88,7 +96,7 @@ class Gridworld(BaseEnv):
 
         return m.transpose() 
     
-    def image(self, V=None, labels=None, policy=None, title=None, cmap = 'bwr', origin='lower'):
+    def image(self, V=None, policy=None, labels=None, title=None, cmap = 'bwr', origin='lower'):
         """
         Display the a gridworld as an image.
         

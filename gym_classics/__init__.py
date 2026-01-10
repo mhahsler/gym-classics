@@ -15,8 +15,16 @@ _registry = (
         'entry_point': 'gym_classics.envs.classic_gridworld:ClassicGridworld'
     },
     {
+        'id': 'ClassicGridworld-v1',
+        'entry_point': 'gym_classics.envs.classic_gridworld_v1:ClassicGridworld'
+    },
+    {
         'id': 'CliffWalk-v0',
         'entry_point': 'gym_classics.envs.cliff_walk:CliffWalk'
+    },
+    {
+        'id': 'CliffWalk-v1',
+        'entry_point': 'gym_classics.envs.cliff_walk_v1:CliffWalk'
     },
     {
         'id': 'DynaMaze-v0',
