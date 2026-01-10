@@ -3,7 +3,13 @@
 [![license](https://img.shields.io/badge/license-GPL%20v3.0-blue)](./LICENSE)
 ![python](https://img.shields.io/badge/python-3.5%2B-green)
 
-### Note: This is a modified version to include some extra features. 
+### Note: This is a modified version used for the SMU course CS 5/73XX Reinforcement Learning  
+
+This version includes:
+
+* some updated environments to match Sutton and Barto's definition more closely.
+* Extra algorithms.
+* More utility functions.
 
 How to install:
 
