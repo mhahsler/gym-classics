@@ -1,4 +1,5 @@
 import numpy as np
+from gym_classics.algorithms.policy import random_policy
 
 def backup(env, discount, V, state, action):
     """Computes the Bellman backup for a given state and action.
@@ -67,3 +68,75 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
     
     return V
 
+
+### Policy Iteration
+
+def policy_evaluation(env, discount, policy, precision=1e-3, max_backups=1000):
+    assert 0.0 <= discount <= 1.0
+    assert precision > 0.0
+    V = np.zeros(policy.shape, dtype=np.float64)
+
+    while True:
+        V_old = V.copy()
+
+        for s in env.states():
+            V[s] = backup(env, discount, V, s, policy[s])
+
+        if np.abs(V - V_old).max() <= precision or max_backups <= 0:
+            break
+
+        max_backups -= 1
+    return V
+
+def policy_improvement(env, discount, policy, V_policy, precision=1e-3):
+    policy_old = policy.copy()
+    V_old = V_policy.copy()
+
+    for s in env.states():
+        Q_values = [backup(env, discount, V_policy, s, a) for a in env.actions()]
+        policy[s] = np.argmax(Q_values)
+        V_policy[s] = max(Q_values)
+
+    stable = np.logical_or(
+        policy == policy_old,
+        np.abs(V_policy - V_old).max() <= precision,
+    ).all()
+
+    return policy, stable
+
+def policy_iteration(env, discount, precision=1e-3, max_backups=1000, history = False, verbose = False):
+    assert 0.0 <= discount <= 1.0
+    assert precision > 0.0
+
+    policy = random_policy(env)
+
+    if history:
+        pol_list = []
+        pol_list.append(policy.copy())
+        V_list = []
+
+    iterations = 0
+    while True:
+        if verbose:
+            print('.', end = '')
+            iterations += 1
+
+        V_policy = policy_evaluation(env, discount, policy, precision, max_backups)
+        if history:
+            V_list.append(V_policy.copy())
+
+        policy, stable = policy_improvement(env, discount, policy, V_policy, precision)
+             
+        if stable:
+            break
+
+        if history:
+            pol_list.append(policy.copy())
+
+    if verbose:
+        print(f'\nConverged after {iterations} iterations.')
+        
+    if history:
+        return pol_list, V_list
+
+    return policy
