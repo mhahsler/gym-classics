@@ -1,15 +1,13 @@
 import random
+import numpy as np
+from gym_classics.algorithms.policy import random_policy, random_argmax
 
-# np.argmax does not break ties randomly
-def random_argmax(x):
-    return np.random.choice(np.where(x == np.max(x))[0])
-
-
-def Sarsa(env, discount, alpha, epsilon, n = 100, verbose = False, returns = False):
+def Sarsa(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, returns = False):
     if returns:
         Rs = [0] * n 
         
-    Q = np.zeros((len(env.states()), len(env.actions())))
+    if Q is None:
+        Q = np.zeros((env.observation_space.n, env.action_space.n))
     
     for i in range(n):
         s, r = env.reset()
@@ -20,7 +18,7 @@ def Sarsa(env, discount, alpha, epsilon, n = 100, verbose = False, returns = Fal
         if (random.random() > epsilon):
             a = random_argmax(Q[s,:])
         else:
-            a = np.random.choice(env.actions())  
+            a = np.random.choice(env.action_space.n)  
           
         t = 0
         done = False
@@ -33,7 +31,7 @@ def Sarsa(env, discount, alpha, epsilon, n = 100, verbose = False, returns = Fal
             if (random.random() > epsilon):
                 ap = random_argmax(Q[sp,:])
             else:
-                ap = np.random.choice(env.actions()) 
+                ap = np.random.choice(env.action_space.n) 
         
             Q[s,a] = Q[s,a] + alpha * (r + discount * Q[sp,ap] - Q[s,a])
             
@@ -51,8 +49,9 @@ def Sarsa(env, discount, alpha, epsilon, n = 100, verbose = False, returns = Fal
     return Q
 
 
-def Q_learning(env, discount, alpha, epsilon, n = 100):
-    Q = np.zeros((len(env.states()), len(env.actions())))
+def Q_learning(env, discount, alpha, epsilon, Q=None, n = 100):
+    if Q is None:
+        Q = np.zeros((env.observation_space.n, env.action_space.n))
     
     for i in range(n):
         s, r = env.reset()
@@ -63,7 +62,7 @@ def Q_learning(env, discount, alpha, epsilon, n = 100):
             if (random.random() > epsilon):
                 a = random_argmax(Q[s,:])
             else:
-                a = np.random.choice(env.actions())
+                a = np.random.choice(env.action_space.n)
             
             sp, r, done, _, _ = env.step(a)
         

@@ -1,6 +1,5 @@
 from gym_classics.envs.abstract.gridworld import Gridworld
 
-
 class NoisyGridworld(Gridworld):
     """Abstract class for creating gridworld-type environments with the classic
     80-10-10 stochastic dynamics:

@@ -56,10 +56,11 @@ class Gridworld(BaseEnv):
         """Converts a numeric action ID into a label. Choices for type are 'text' and 'arrow'."""
         action = int(action)
         
+        # empty has index 4 and is used to hide actions
         if (type == "arrow"):
-             action_labels = ['↑', '→', '↓', '←']
+             action_labels = ['↑', '→', '↓', '←', '']
         else: 
-            action_labels =["up", "right", "down", "left"]
+            action_labels =["up", "right", "down", "left", ""]
             
         return action_labels[action]
 
@@ -96,24 +97,34 @@ class Gridworld(BaseEnv):
 
         return m.transpose() 
     
-    def image(self, V=None, policy=None, labels=None, title=None, cmap = 'bwr', origin='lower'):
+    def image(self, V=None, policy=None, episode = None, labels=None, title=None, cmap = 'auto', origin='lower', clim = None):
         """
         Display the a gridworld as an image.
         
         :param value: The value (e.g., a value function) to display. If None, display state indices.
         :param labels: The labels to show on the grid cells in the same order as the value function. If True, show rounded values from V.
         :param policy: The policy to display. If not None, show the policy.
+        :param episode: Show an episode
         :param title: Title of the plot.
         :param cmap: Colormap to use for the value function.
         :param origin: 'lower' means (0,0) is at the bottom-left, 'upper' means (0,0) is at the top-left.
         """
         
+        colorbar = True
+        
         if not V is None:
             m = self.to_matrix(V)
         else:
             m = np.zeros(self.dims).transpose()
+            # missing positions have -1
+            m[self.to_matrix(labels) == -1] = np.nan
             labels = self.states()
-            cmap = None
+            colorbar = False
+
+        if not episode is None:
+            policy = np.full(self.observation_space.n, 4)
+            for step in episode:
+                policy[step[0]] = step[1]
 
         if not policy is None:
             labels = [self.decode_action(a, type = "arrow") for a in policy]
@@ -124,38 +135,59 @@ class Gridworld(BaseEnv):
         if not labels is None:
             labels = self.to_matrix(labels)
 
-        image(m, title=title, labels=labels, cmap=cmap, origin=origin)  
+        _image(m, title=title, labels=labels, cmap=cmap, clim = clim, origin=origin, colorbar=colorbar)  
         
         
-    def image_list(self, Vs = None, policies = None, cmap = 'bwr', origin='lower'):
+    def image_list(self, Vs = None, policies = None, episodes = None, cmap = 'auto', clim = None, origin='lower'):
+        """
+        Creates a sequence of images, one for each episode.
+        """
         n_states = len(self.states())
         if Vs is not None:
             iterations = len(Vs)
-        else:
+        elif policies is not None:
             iterations = len(policies)
+        else:
+            iterations = len(episodes)
         
         V = None
         policy = None
+        episode = None
 
         for i in range(iterations):
             if not Vs is None:
                 V = Vs[i]
             if not policies is None:
-                policy = policies[i]    
+                policy = policies[i]
+            if not episodes is None:
+                episode = episodes[i]    
 
-            self.image(V, policy=policy, title=f'After Iteration {i}', cmap=cmap, origin=origin)  
+            self.image(V, policy=policy, episode=episode, title=f'After Iteration {i}', cmap=cmap, clim = clim, origin=origin)  
 
 ### helper functions
-def image(m, labels=None, title=None,  cmap = 'bwr', origin='lower'):
+import matplotlib.cm as cm
+
+def _image(m, labels=None, title=None, cmap = 'auto', clim = None, origin='lower', colorbar=True):
+    
+    if cmap == 'auto':      
+        if (np.any(m < 0.0) and np.any(m > 0.0)) or not clim is None and clim[0]<0 and clim[1]>0:
+            cmap = "coolwarm"
+            cmap = cm.get_cmap(cmap).copy()
+            cmap.set_bad(color='black')
+        else:
+            cmap = "Reds"
+            cmap = cm.get_cmap(cmap).copy() 
+            cmap.set_bad(color='black')
     
     row_labels = range(m.shape[0])
     col_labels = range(m.shape[1])
     
     fig, ax = plt.subplots()
-    if not cmap is None:
-        im = ax.imshow(m, cmap=cmap, origin=origin)
+    if not clim is None:
+        im = ax.imshow(m, cmap=cmap, origin=origin, vmin = clim[0], vmax=clim[1])
     else:
-        im = ax.imshow(np.zeros(m.shape), cmap = 'Grays',  origin=origin)
+        im = ax.imshow(m, cmap=cmap, origin=origin)
+
 
     ax.set_xticks(np.arange(m.shape[1]))
     ax.set_yticks(np.arange(m.shape[0]))
@@ -172,7 +204,7 @@ def image(m, labels=None, title=None,  cmap = 'bwr', origin='lower'):
         for (j, i), label in np.ndenumerate(labels):
             ax.text(i, j, label, ha='center', va='center', color='black', fontsize=10)
 
-    if not cmap is None:
+    if colorbar:
         plt.colorbar(im, ax=ax)
     
     plt.title(title)
@@ -180,6 +212,7 @@ def image(m, labels=None, title=None,  cmap = 'bwr', origin='lower'):
 
 
 def parse_gridworld(layout_string):
+    """Parse the layout string"""
     layout_string = layout_string.replace(
         '|', '')  # Remove optional pipe characters
     lines = layout_string.split('\n')

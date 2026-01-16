@@ -1,11 +1,12 @@
 import numpy as np
-from gym_classics.algorithms.policy import random_policy
+from gym_classics.algorithms.policy import random_policy, random_argmax
+from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 def backup(env, discount, V, state, action):
     """Computes the Bellman backup for a given state and action.
     
     Args:
-        env: The environment.
+        env: A gym-classics environment with model access.
         discount: The discount factor.
         V: The current value function.
         state: The current state.
@@ -13,6 +14,8 @@ def backup(env, discount, V, state, action):
     Returns:
         The computed Q-value for the given state and action.
     """
+
+    V = np.array(V)
 
     next_states, rewards, terminals, probs = env.model(state, action)
     bootstraps = (1.0 - terminals) * V[next_states]
@@ -24,7 +27,7 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
     """Performs value iteration for the given environment.
 
     Args:
-        env: The environment to perform value iteration on.
+        env: A gym-classics environment with model access.
         discount: The discount factor (0 <= discount <= 1).
         precision: The precision for convergence (default: 1e-3).
         history: If True, returns a list of intermediate value functions.
@@ -34,6 +37,7 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
         The optimal value function V. If Vs is True, also returns a list of intermediate value functions.
     """
     
+    assert isinstance(env, GymClassicsBaseEnv)
     assert 0.0 <= discount <= 1.0
     assert precision > 0.0
     
@@ -51,7 +55,7 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
         V_old = V.copy()
 
         for s in env.states():
-            Q_values = [backup(env, discount, V, s, a) for a in env.actions()]
+            Q_values = [backup(env, discount, V, s, a) for a in range(env.action_space.n)]
             V[s] = np.max(Q_values)
 
         if history:
@@ -72,8 +76,11 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
 ### Policy Iteration
 
 def policy_evaluation(env, discount, policy, precision=1e-3, max_backups=1000):
+    
+    assert isinstance(env, GymClassicsBaseEnv)
     assert 0.0 <= discount <= 1.0
     assert precision > 0.0
+    
     V = np.zeros(policy.shape, dtype=np.float64)
 
     while True:
@@ -87,6 +94,7 @@ def policy_evaluation(env, discount, policy, precision=1e-3, max_backups=1000):
 
         max_backups -= 1
     return V
+
 
 def policy_improvement(env, discount, policy, V_policy, precision=1e-3):
     policy_old = policy.copy()
@@ -105,6 +113,21 @@ def policy_improvement(env, discount, policy, V_policy, precision=1e-3):
     return policy, stable
 
 def policy_iteration(env, discount, precision=1e-3, max_backups=1000, history = False, verbose = False):
+    """Performs policy iteration for the given environment.
+
+    Args:
+        env: A gym-classics environment with model access.
+        discount: The discount factor (0 <= discount <= 1).
+        precision: The precision for convergence (default: 1e-3).
+        max_backups: Maximum number of iterations used in policy evaluation. Note: this prevents an infinite loop for policies that do not reach a terminal state.
+        history: If True, returns a list of intermediate value functions.
+        verbose: If True, prints progress information.
+
+    Returns:
+        The optimal value function V. If Vs is True, also returns a list of intermediate value functions.
+    """
+    
+    assert isinstance(env, GymClassicsBaseEnv)
     assert 0.0 <= discount <= 1.0
     assert precision > 0.0
 

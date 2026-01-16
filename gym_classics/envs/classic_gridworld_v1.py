@@ -32,7 +32,7 @@ class ClassicGridworld(NoisyGridworld):
         if state in self._goals: 
             return 0.0
         
-        return {(3, 1): -1.0, (3, 2): 1.0}.get(state, -0.04)
+        return {(3, 1): -1.0, (3, 2): 1.0}.get(next_state, -0.04)
 
     def _done(self, state, action, next_state):
         return state in self._goals  
