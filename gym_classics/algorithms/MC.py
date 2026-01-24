@@ -12,8 +12,9 @@ def sample_episode(env, policy = None, start_state = None, start_action = None, 
     
     if policy is None:
         policy = random_policy(env)
+        epsilon = 1.0
         if verbose:
-            print("*** No policy given, sampling using a random policy!")
+            print("*** No policy given, sampling using random actions!")
     
     episode = []
     s, r = env.reset()
@@ -40,6 +41,7 @@ def sample_episode(env, policy = None, start_state = None, start_action = None, 
             a = start_action
         
         sp, reward, done, _, _ = env.step(a)
+        
         episode.append((s,a,reward,sp))
         
         if verbose:

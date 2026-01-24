@@ -57,7 +57,10 @@ class BaseEnv(Env, metaclass=ABCMeta):
                 if prob > 0.0:
                     if not done and next_state not in visited:
                         self._search(next_state, visited)
-
+                    # MFH add the final state!
+                    if done and next_state not in visited:
+                        visited.add(next_state)
+                        
     def reset(self, seed=None, options=None):
         if self.np_random is None and seed is None:
             seed = np.random.default_rng().integers(2**32)
@@ -95,8 +98,8 @@ class BaseEnv(Env, metaclass=ABCMeta):
         next_state, prob = self._next_state(state, action, *random_elements)
         reward = self._reward(state, action, next_state)
         done = self._done(state, action, next_state)
-        if done:
-            next_state = state
+        #if done:
+        #    next_state = state
         return next_state, reward, done, prob
 
     @abstractmethod

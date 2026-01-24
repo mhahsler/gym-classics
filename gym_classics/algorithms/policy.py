@@ -67,3 +67,4 @@ def greedy_policy_Q(env, Q, discount=1):
     assert 0.0 <= discount <= 1.0
 
     return random_argmax(Q, axis=1)
+
