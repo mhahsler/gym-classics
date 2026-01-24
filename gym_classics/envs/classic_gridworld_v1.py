@@ -1,3 +1,4 @@
+import numpy as np
 from gym_classics.envs.abstract.noisy_gridworld import Gridworld
 
 
@@ -43,7 +44,7 @@ class ClassicGridworld(Gridworld):
     # noisy action instead of the action the agent asked for.  
     # We return actually executed action as a list of random elements.
     def _sample_random_elements(self, state, action):
-        noisy_action = action + np.random.choice([-1, 0, 1], p=[.1,.8,.1]) % self.action_space.n
+        noisy_action = (action + np.random.choice([-1, 0, 1], p=[.1,.8,.1])) % self.action_space.n
         return [noisy_action]
 
     # Returns an iterator for all possible outcomes. The random element is that
