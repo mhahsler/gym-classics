@@ -45,6 +45,7 @@ class Gridworld(BaseEnv):
 
     ### Addition to the interface
     
+    ### TODO: move to base class?
     def encode_action(self, action_label):
         """Converts a action label into a numeric action ID."""
         action_ids = {"up": 0, "right": 1, "down": 2, "left": 3}
@@ -170,7 +171,7 @@ import matplotlib.cm as cm
 def _image(m, labels=None, title=None, cmap = 'auto', clim = None, origin='lower', colorbar=True):
     
     if cmap == 'auto':      
-        if (np.any(m < 0.0) and np.any(m > 0.0)) or not clim is None and clim[0]<0 and clim[1]>0:
+        if (np.any(m < 0.0) and np.any(m > 0.0)) or (not clim is None and clim[0]<0 and clim[1]>0):
             cmap = "coolwarm"
             cmap = cm.get_cmap(cmap).copy()
             cmap.set_bad(color='black')
