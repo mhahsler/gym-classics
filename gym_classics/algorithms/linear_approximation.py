@@ -1,4 +1,6 @@
 import numpy as np
+from itertools import product
+
 from gym_classics.algorithms.policy import random_policy, random_argmax
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
@@ -98,4 +100,35 @@ def semi_gradient_Sarsa(env, n, epsilon, alpha, gamma, w = None, max_episode_len
             i += 1
 
     return w  
+
+
+
+# product from itertools is the cartesian product
+def create_fourier_basis_coefs(dim, order): 
+    """ Create Fourier basis coefficients for given dimension and order. 
+        param dim: dimension of the state features
+        param order: order of the Fourier basis
+    """  
+    return np.array(list(product(range(order+1), repeat=dim)))
     
+def transformation_fourier_basis(min, max, order):
+    """ Create a Fourier basis transformation function for given min/max ranges and order.
+    
+        To use this transformation with semi_gradient_Sarsa you need to overwrite the state_features 
+        function like this:
+        
+        def state_features(s): return trans_fb(env.decode(s))
+        gym_classics.algorithms.linear_approximation.state_features = state_features
+        
+        param min: minimum values for each dimension
+        param max: maximum values for each dimension
+        param order: order of the Fourier basis
+    """  
+    coefs = create_fourier_basis_coefs(len(min), order)
+    
+    def fourier_basis(s):
+        # normalize state to [0,1]
+        norm_s = (s - min) / (max - min)
+        return np.cos(np.pi * np.dot(coefs, norm_s))
+    
+    return fourier_basis

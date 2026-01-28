@@ -1,7 +1,9 @@
 from gym_classics.envs.abstract.base_env import BaseEnv
 
 import numpy as np
+
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 class Gridworld(BaseEnv):
     """Abstract class for creating gridworld-type environments."""
@@ -98,6 +100,24 @@ class Gridworld(BaseEnv):
 
         return m.transpose() 
     
+    def print(self, array, decimals=2, separator=' ' * 2, signed=True, transpose=False):
+    # First get the string length of the longest number
+        def formatter(x):
+            string = '{:' + ('+' if signed else '') + '.' + str(decimals) + 'f}'
+            return string.format(x)
+        maxlen = max([len(formatter(x)) for x in array])
+
+        # Now we can actually print the values
+        for y in reversed(range(self.dims[1])):
+            for x in range(self.dims[0]):
+                state = (x, y) if not transpose else (y, x)
+                if self.is_reachable(state):
+                    s = self.encode(state)
+                    print(formatter(array[s]).rjust(maxlen), end=separator)
+                else:
+                    print(' ' * maxlen, end=separator)
+            print()
+    
     def image(self, V=None, policy=None, episode = None, labels=None, title=None, cmap = 'auto', origin='lower', clim = None):
         """
         Display the a gridworld as an image.
@@ -135,8 +155,15 @@ class Gridworld(BaseEnv):
 
         if not labels is None:
             labels = self.to_matrix(labels)
-
-        _image(m, title=title, labels=labels, cmap=cmap, clim = clim, origin=origin, colorbar=colorbar)  
+            
+        extra = [""] * self.observation_space.n
+        for s in self._starts:
+            extra[self.encode(s)] = "S"
+        for s in self._goals:
+            extra[self.encode(s)] = "G"
+        extra = self.to_matrix(extra)
+        
+        _image(m, title=title, labels=labels, extra=extra, cmap=cmap, clim = clim, origin=origin, colorbar=colorbar)  
         
         
     def image_list(self, Vs = None, policies = None, episodes = None, cmap = 'auto', clim = None, origin='lower'):
@@ -165,10 +192,9 @@ class Gridworld(BaseEnv):
 
             self.image(V, policy=policy, episode=episode, title=f'After Iteration {i}', cmap=cmap, clim = clim, origin=origin)  
 
-### helper functions
-import matplotlib.cm as cm
 
-def _image(m, labels=None, title=None, cmap = 'auto', clim = None, origin='lower', colorbar=True):
+
+def _image(m, labels=None, extra = None, title=None, cmap = 'auto', clim = None, origin='lower', colorbar=True):
     
     if cmap == 'auto':      
         if (np.any(m < 0.0) and np.any(m > 0.0)) or (not clim is None and clim[0]<0 and clim[1]>0):
@@ -201,9 +227,14 @@ def _image(m, labels=None, title=None, cmap = 'auto', clim = None, origin='lower
     ax.tick_params(which='minor', bottom=False, left=False)
     ax.grid(which='minor', color='black', linestyle='-', linewidth=1)
     
+    if not extra is None:
+        for (j, i), label in np.ndenumerate(extra):
+            ax.text(i, j, label, ha='center', va='center', color='grey', fontsize=15, fontweight='bold')
+    
     if not labels is None:
         for (j, i), label in np.ndenumerate(labels):
             ax.text(i, j, label, ha='center', va='center', color='black', fontsize=10)
+            
 
     if colorbar:
         plt.colorbar(im, ax=ax)
