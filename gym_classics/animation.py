@@ -6,7 +6,8 @@ import matplotlib.cm as cm
 # for animation
 from matplotlib import animation, rc
 from IPython.display import HTML
-rc('animation', html='html5')
+#rc('animation', html='html5')
+rc('animation', html='jshtml')
 
 ### Visualization function
 
