@@ -9,6 +9,15 @@ class Gridworld(BaseEnv):
     """Abstract class for creating gridworld-type environments."""
 
     def __init__(self, layout_string, n_actions=None):
+        """Initializes the gridworld environment from a layout string. The layout string should be a rectangular grid of characters, where each character represents a type of cell:
+        - 'S': Start (may be more than one)
+        - 'G': Goal (may be more than one)
+        - 'X': Block (agent cannot occupy these cells)
+        - ' ': Empty (agent can occupy these cells)
+        
+        param layout_string: The string representation of the gridworld layout.
+        param n_actions: The number of actions. If None, defaults to 4 (up, right, down, left). You can specify additional actions by increasing the number of actions to use in the `_next_state` method.
+        """
         self.dims, starts, self._goals, self._blocks = parse_gridworld(
             layout_string)
 
