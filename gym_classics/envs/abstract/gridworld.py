@@ -228,22 +228,30 @@ def _image(m, labels=None, extra = None, title=None, cmap = 'auto', clim = None,
     col_labels = range(m.shape[1])
     
     fig, ax = plt.subplots()
+
+    
+    num_rows, num_cols = m.shape
+
+    print("here")
+    
     if not clim is None:
-        im = ax.imshow(m, cmap=cmap, origin=origin, vmin = clim[0], vmax=clim[1])
+        im = ax.imshow(m, cmap=cmap, interpolation="nearest", origin=origin, vmin = clim[0], vmax=clim[1])
     else:
-        im = ax.imshow(m, cmap=cmap, origin=origin)
-
-
+        im = ax.imshow(m, cmap=cmap, interpolation="nearest", origin=origin)
+    
+    ax.set_aspect("equal")
+    
+    # major tickmarks at the center of each cell for labels
     ax.set_xticks(np.arange(m.shape[1]))
     ax.set_yticks(np.arange(m.shape[0]))
     ax.set_xticklabels(col_labels)
     ax.set_yticklabels(row_labels)
 
-    num_rows, num_cols = m.shape
+    # minor tickmarks at the edges of the cells for gridlines
     ax.set_xticks(np.arange(-.5, num_cols, 1), minor=True)
     ax.set_yticks(np.arange(-.5, num_rows, 1), minor=True)
     ax.tick_params(which='minor', bottom=False, left=False)
-    ax.grid(which='minor', color='black', linestyle='-', linewidth=1)
+    ax.grid(which='minor', color='black', linestyle='-', linewidth=.5)
     
     if not extra is None:
         for (j, i), label in np.ndenumerate(extra):
