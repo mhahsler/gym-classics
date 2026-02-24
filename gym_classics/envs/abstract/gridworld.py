@@ -1,3 +1,5 @@
+from cProfile import label
+
 from gym_classics.envs.abstract.base_env import BaseEnv
 
 import numpy as np
@@ -8,21 +10,25 @@ import matplotlib.cm as cm
 class Gridworld(BaseEnv):
     """Abstract class for creating gridworld-type environments."""
 
-    def __init__(self, layout_string, n_actions=None):
+    def __init__(self, layout_string, n_actions=None, action_labels = ["up", "right", "down", "left"]):
         """Initializes the gridworld environment from a layout string. The layout string should be a rectangular grid of characters, where each character represents a type of cell:
         - 'S': Start (may be more than one)
         - 'G': Goal (may be more than one)
         - 'X': Block (agent cannot occupy these cells)
         - ' ': Empty (agent can occupy these cells)
+        - All other characters are treated as empty cells that the agent can occupy.
         
         param layout_string: The string representation of the gridworld layout.
         param n_actions: The number of actions. If None, defaults to 4 (up, right, down, left). You can specify additional actions by increasing the number of actions to use in the `_next_state` method.
+        param action_labels: The labels for the actions. Defaults to ["up", "right", "down", "left"]. You can specify additional labels for extra actions.
         """
-        self.dims, starts, self._goals, self._blocks = parse_gridworld(
+        self.dims, starts, self._goals, self._blocks, self._extra_labels = parse_gridworld(
             layout_string)
 
+        
+        self.action_labels = action_labels
         if n_actions is None:
-            n_actions = 4
+            n_actions = len(action_labels)
         super().__init__(starts, n_actions)
 
     def _next_state(self, state, action):
@@ -59,7 +65,7 @@ class Gridworld(BaseEnv):
     ### TODO: move to base class?
     def encode_action(self, action_label):
         """Converts a action label into a numeric action ID."""
-        action_ids = {"up": 0, "right": 1, "down": 2, "left": 3}
+        action_ids = dict(zip(self.action_labels, range(len(self.action_labels))))
         id = action_ids.get(action_label, -1)
         return id
 
@@ -68,11 +74,11 @@ class Gridworld(BaseEnv):
         """Converts a numeric action ID into a label. Choices for type are 'text' and 'arrow'."""
         action = int(action)
         
+        action_labels = self.action_labels + [""]  # Add empty label for hidden actions
+       
         # empty has index 4 and is used to hide actions
         if (type == "arrow"):
-             action_labels = ['↑', '→', '↓', '←', '']
-        else: 
-            action_labels =["up", "right", "down", "left", ""]
+             action_labels[0:4] = ['↑', '→', '↓', '←']
             
         return action_labels[action]
 
@@ -152,7 +158,8 @@ class Gridworld(BaseEnv):
             colorbar = False
 
         if not episode is None:
-            policy = np.full(self.observation_space.n, 4)
+            # start with policy that hides all actions with an index past the last action.
+            policy = np.full(self.observation_space.n, self.action_space.n)
             for step in episode:
                 policy[step[0]] = step[1]
 
@@ -170,6 +177,8 @@ class Gridworld(BaseEnv):
             extra[self.encode(s)] = "S"
         for s in self._goals:
             extra[self.encode(s)] = "G"
+        for s, label in self._extra_labels:
+            extra[self.encode(s)] = label
         extra = self.to_matrix(extra)
         
         _image(m, title=title, labels=labels, extra=extra, cmap=cmap, clim = clim, origin=origin, colorbar=colorbar)  
@@ -269,6 +278,7 @@ def parse_gridworld(layout_string):
     starts = set()
     goals = set()
     blocks = set()
+    extra_labels = set()
 
     for row in range(H):
         for col in range(W):
@@ -285,6 +295,7 @@ def parse_gridworld(layout_string):
             elif char == ' ':  # Empty (agent can occupy these cells)
                 pass
             else:
-                raise ValueError(f"invalid character '{char}' at {coords}")
+                extra_labels.add((coords, char))
+            #    raise ValueError(f"invalid character '{char}' at {coords}")
 
-    return dims, frozenset(starts), frozenset(goals), frozenset(blocks)
+    return dims, frozenset(starts), frozenset(goals), frozenset(blocks), frozenset(extra_labels)
