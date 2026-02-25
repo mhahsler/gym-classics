@@ -122,7 +122,7 @@ class Gridworld(BaseEnv):
             return string.format(x)
         maxlen = max([len(formatter(x)) for x in array])
 
-        # Now we can actually print the values
+        # Now we can actually print ithe values
         for y in reversed(range(self.dims[1])):
             for x in range(self.dims[0]):
                 state = (x, y) if not transpose else (y, x)
@@ -232,8 +232,6 @@ def _image(m, labels=None, extra = None, title=None, cmap = 'auto', clim = None,
     
     num_rows, num_cols = m.shape
 
-    print("here")
-    
     if not clim is None:
         im = ax.imshow(m, cmap=cmap, interpolation="nearest", origin=origin, vmin = clim[0], vmax=clim[1])
     else:
