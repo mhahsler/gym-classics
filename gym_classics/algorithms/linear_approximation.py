@@ -5,12 +5,89 @@ from gym_classics.algorithms.policy import random_policy, random_argmax
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 def state_features(s):
+    """
+    Convert the state id into state features. This function needs to be overwritten for the environment
+    
+    :param s: state id
+    :return a state feature vector
+    """
     raise NotImplementedError("stat_features function must be implemented and overwrite gym_classics.algorithms.linear_approximation.state_features.") 
 
 def v_hat(s, w):
+    """
+    Estimate Value function
+    
+    :param s: state id
+    :param w: weight vector
+    :return the state value estimate
+    """
     return np.dot(w, state_features(s))
 
+def active_weights(a, sf_len):
+    """helper for q_hat()"""
+    return [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
+
+def q_hat(s, a, w):
+    """
+    Estimate the action value function.
+    
+    :param s: state id
+    :param a: action
+    :param w: weight vector
+    :return the state-action value estimate
+    """
+    sf_len = state_features(0).shape[0]-1
+    active_weights = lambda a: [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
+    return np.dot(w[active_weights(a)], state_features(s))
+
+def MSVE(V, V_true, weight=None):
+    """
+    Calculate the (weighted) mean squared value error.
+    
+    :param V: value function to evaluate
+    :param V_true: the value function to compare to
+    :param weight: weight for each state. Typically the stationary state visit distribution.
+    """
+    if weight is None:
+        weight = np.ones(len(V))
+    
+    return np.sum(weight * (V - V_true)**2)
+
+
+def schedule(episode, value_0=0.001, k=0.001):
+    return value_0 / (1 + k * episode)
+
+
 def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_length=1000, verbose = True):
+    """
+    Estimate the state-value function using the semi-gradient TD(0) algorithm.
+
+    This function runs TD(0) learning with function approximation over multiple
+    episodes generated from a given policy and environment. Updates are performed
+    using the semi-gradient of the value function approximation.
+
+    Parameters
+    ----------
+    env : GymClassicsBaseEnv
+        Environment following the Gym interface from which episodes are sampled.
+    policy : a deterministic policy as a vector.
+    n : int
+        Number of episodes to run for value estimation. Must be positive.
+    alpha : float
+        Step-size (learning rate) for TD updates. Must be in the interval (0, 1].
+    gamma : float
+        Discount factor for future rewards. Must be in the interval [0, 1].
+    max_episode_length : int, optional
+        Maximum number of time steps per episode (default is 1000).
+    verbose : bool, optional
+        If True, prints progress or diagnostic information during training
+        (default is True).
+
+    Returns
+    -------
+    w
+        Returns the learned weight vector for the approximate value function.
+    """
     assert isinstance(env, GymClassicsBaseEnv), "env must be an instance of gym.Env"
     assert alpha > 0 and alpha <= 1, "Alpha must be in (0,1]"
     assert gamma >= 0 and gamma <= 1, "Gamma must be in [0,1]"
@@ -44,15 +121,44 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
 
     return w
 
-def active_weights(a, sf_len):
-    return [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
 
-def q_hat(s, a, w): 
-    sf_len = state_features(0).shape[0]-1
-    active_weights = lambda a: [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
-    return np.dot(w[active_weights(a)], state_features(s))
+def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_length=1000, verbose = True):
+    """
+    Semi-gradient SARSA: on-policy control with function approximation.
 
-def semi_gradient_Sarsa(env, n, epsilon, alpha, gamma, w = None, max_episode_length=1000, verbose = True):
+    Implements the **semi-gradient SARSA** algorithm for estimating the optimal
+    action-value function q_*(s, a) using a differentiable function approximator
+    q̂(s, a, w). Actions are selected according to an ε-greedy policy derived
+    from the current action-value estimate.
+
+    Episodes are truncated after `max_episode_length` time steps.
+
+    Parameters
+    ----------
+    env : GymClassicsBaseEnv
+        Episodic environment used to generate experience.
+    n : int
+        Number of episodes over which to perform control learning.
+    epsilon : float
+        Exploration parameter for the epsilon-greedy behavior policy (0 <= epsilon <= 1).
+    alpha : float
+        Step-size parameter for the weight update (0 < alpha <= 1).
+    gamma : float
+        Discount factor (0 <= gamma <= 1).
+    w : array-like or None, optional
+        Initial weight vector for the action-value function approximator.
+        If None, weights are initialized internally.
+    max_episode_length : int, optional
+        Maximum number of time steps per episode before truncation (default 1000).
+    verbose : bool, optional
+        If True, prints progress diagnostics during learning (default True).
+
+    Returns
+    -------
+    w
+        Returns the learned weight vector for the approximate value function.
+    """
+    
     assert isinstance(env, GymClassicsBaseEnv), "env must be an instance of gym.Env"
     assert alpha > 0 and alpha <= 1, "Alpha must be in (0,1]"
     assert gamma >= 0 and gamma <= 1, "Gamma must be in [0,1]"
