@@ -4,6 +4,7 @@ from itertools import product
 from gym_classics.algorithms.linear_approximation import state_features, q_hat  
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
+from tqdm import tqdm
 
 def semi_gradient_Sarsa_lambda(
     env,
@@ -68,7 +69,7 @@ def semi_gradient_Sarsa_lambda(
         q_values = [q_hat(state, a, w) for a in range(env.action_space.n)]
         return np.argmax(q_values)
 
-    for episode in range(n):
+    for episode in tqdm(range(n), desc="Semi-Gradient SARSA(lambda)", disable=verbose):
         state, _ = env.reset()
         action = epsilon_greedy_action(state, epsilon)
 

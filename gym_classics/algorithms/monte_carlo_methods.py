@@ -4,6 +4,7 @@ from collections import defaultdict
 import gymnasium as gym
 from gym_classics.envs.abstract.gridworld import Gridworld
 from gym_classics.algorithms.policy import random_policy, random_argmax
+from tqdm import tqdm
 
 def sample_episode(env, policy = None, start_state = None, start_action = None, epsilon = 0, max_len = 1000, verbose = False):
     
@@ -53,7 +54,7 @@ def sample_episode(env, policy = None, start_state = None, start_action = None, 
     return(episode)
 
 
-def on_policy_state_distribution(env, pol, discount = 1, epsilon = 0, n = 1):
+def on_policy_state_distribution(env, pol, discount = 1, epsilon = 0, n = 100):
     """Estimate the (discounted) state distribution of a policy by sampling episodes."""
     assert 0.0 <= epsilon <= 1.0
     assert 0.0 < discount <= 1.0
@@ -61,7 +62,7 @@ def on_policy_state_distribution(env, pol, discount = 1, epsilon = 0, n = 1):
     
     state_cnts = np.zeros(env.observation_space.n)
     
-    for _ in range(n):
+    for _ in tqdm(range(n), desc="Sampling Episodes", disable=verbose):
         episode = np.array(sample_episode(env, policy=pol, epsilon = epsilon))
         states = np.append(episode[:,0], episode[-1,3])
         discounts = np.array([discount**i for i in range(len(states))])
@@ -80,7 +81,7 @@ def MC_prediction(env, policy, discount, n = 100, max_episode_len = 100, verbose
     
     Returns = defaultdict(list) # a list for each s
     
-    for i in range(n):
+    for i in tqdm(range(n), desc="MC Prediction", disable=verbose):
         if verbose:
             print("episode", i," of ", n)
     
@@ -103,7 +104,6 @@ def MC_prediction(env, policy, discount, n = 100, max_episode_len = 100, verbose
     
     return Vs
 
-# TODO: change this code to running averages instead of lists of returns. This is more efficient and can be used for infinite horizon problems.
 def MC_control_ES(env, discount, n = 100, Q = None, max_episode_len = 100, history = False, verbose = False): 
     assert isinstance(env.action_space, gym.spaces.Discrete)
     assert isinstance(env.observation_space, gym.spaces.Discrete)
@@ -128,7 +128,7 @@ def MC_control_ES(env, discount, n = 100, Q = None, max_episode_len = 100, histo
         ep_list.append(None)
     
     
-    for i in range(n):
+    for i in tqdm(range(n), desc="MC Control", disable=verbose):
         if verbose:
             print("episode", i," of ", n)
         
@@ -187,7 +187,7 @@ def MC_control_ES_inc(env, discount, n=100, Q=None, max_episode_len=100, history
         pol_list = [policy.copy()]
         ep_list = [None]
 
-    for i in range(n):
+    for i in tqdm(range(n), desc="MC Control (Incremental)", disable=verbose):
         if verbose:
             print("episode", i, "of", n)
 

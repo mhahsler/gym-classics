@@ -1,6 +1,7 @@
 import random
 import numpy as np
 from gym_classics.algorithms.policy import random_policy, random_argmax
+from tqdm import tqdm
 
 def Sarsa(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, returns = False):
     if returns:
@@ -9,7 +10,7 @@ def Sarsa(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, retur
     if Q is None:
         Q = np.zeros((env.observation_space.n, env.action_space.n))
     
-    for i in range(n):
+    for i in tqdm(range(n), desc="Sarsa", disable=verbose):
         s, r = env.reset()
          
         if verbose:
@@ -49,11 +50,11 @@ def Sarsa(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, retur
     return Q
 
 
-def Q_learning(env, discount, alpha, epsilon, Q=None, n = 100):
+def Q_learning(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False):
     if Q is None:
         Q = np.zeros((env.observation_space.n, env.action_space.n))
     
-    for i in range(n):
+    for i in tqdm(range(n), desc="Q-Learning", disable=verbose):
         s, r = env.reset()
           
         done = False

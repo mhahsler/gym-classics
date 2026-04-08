@@ -4,6 +4,8 @@ from itertools import product
 from gym_classics.algorithms.policy import random_policy, random_argmax
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
+from tqdm import tqdm
+
 def state_features(s):
     """
     Convert the state id into state features. This function needs to be overwritten for the environment
@@ -96,7 +98,7 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
     
     w = np.zeros(state_features(0).shape[0])  # Initialize weights (intercept + x and y)
 
-    for episode in range(n):
+    for episode in tqdm(range(n), desc="Semi-Gradient TD(0)", disable=verbose):
         state, _ = env.reset()
         done = False
 
@@ -180,7 +182,7 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
             q_values = [q_hat(state, a, w) for a in range(env.action_space.n)]
             return np.argmax(q_values)
     
-    for episode in range(n):
+    for episode in tqdm(range(n), desc="Semi-Gradient SARSA(0)", disable=verbose):
         state, _ = env.reset()
         action = epsilon_greedy_action(state, epsilon)
         done = False

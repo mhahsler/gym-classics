@@ -1,6 +1,7 @@
 import numpy as np
 from gym_classics.algorithms.policy import random_policy, random_argmax
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
+from tqdm import tqdm
 
 def backup(env, discount, V, state, action):
     """Computes the Bellman backup for a given state and action.
@@ -22,6 +23,10 @@ def backup(env, discount, V, state, action):
     return np.sum(probs * (rewards + discount * bootstraps))
 
 ### Value Iteration
+
+def infinite_loop():
+  while condition:
+    yield
 
 def value_iteration(env, discount, precision=1e-3, history = False, verbose = False):
     """Performs value iteration for the given environment.
@@ -47,7 +52,9 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
         V_list.append(V.copy())
 
     sweeps = 0
+    progress = tqdm(total=None, desc="Value Iteration", disable=verbose)
     while True:
+        progress.update()
         if verbose:
             print('.', end = '')
             sweeps += 1
@@ -139,7 +146,9 @@ def policy_iteration(env, discount, precision=1e-3, max_backups=1000, history = 
         V_list = []
 
     iterations = 0
+    progress = tqdm(total=None, desc="Policy Iteration", disable=verbose)
     while True:
+        progress.update()
         if verbose:
             print('.', end = '')
             iterations += 1
