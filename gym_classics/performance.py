@@ -11,14 +11,25 @@ def simple_moving_average(data, window_size = 100):
 def cum_avg(data):
     return np.cumsum(data) / np.arange(1, len(data) + 1)
 
-def plot_returns(returns, title = ""):
+def plot_returns(returns, y_label = "Episode Return", title = "", window_size = 100):
     x = range(len(returns))
-    plt.plot(x, returns, label="Episode Returns")
-    plt.plot(x, simple_moving_average(returns, 100), label="Moving Average (100)")
-    plt.plot(x, cum_avg(returns), label="Cumulative Average Return")
+    plt.plot(x, returns, label="Episode")
+    plt.plot(x, simple_moving_average(returns, window_size), label="Moving Average (100)")
+    plt.plot(x, cum_avg(returns), label="Cumulative Average")
 
     plt.xlabel("Episode")
-    plt.ylabel("Episode Return")
+    plt.ylabel(y_label)
+    plt.title(title)
+    plt.legend()
+    plt.show()
+    
+def plot_ep_lens(ep_lens, y_label = "Episode Length", title = "", window_size = 100):
+    x = range(len(ep_lens))
+    plt.plot(x, ep_lens, label="Episode Length")
+    plt.plot(x, simple_moving_average(ep_lens, window_size), label="Moving Average (100)")
+
+    plt.xlabel("Episode")
+    plt.ylabel(y_label)
     plt.title(title)
     plt.legend()
     plt.show()
