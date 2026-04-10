@@ -104,7 +104,8 @@ def MC_prediction(env, policy, discount, n = 100, max_episode_len = 100, verbose
     
     return Vs
 
-def MC_control_ES(env, discount, n = 100, Q = None, max_episode_len = 100, history = False, verbose = False): 
+# this version does not use incremental updates and is very slow!
+def MC_control_ES_textbook(env, discount, n = 100, Q = None, max_episode_len = 100, history = False, verbose = False): 
     assert isinstance(env.action_space, gym.spaces.Discrete)
     assert isinstance(env.observation_space, gym.spaces.Discrete)
     assert n > 0
@@ -126,6 +127,7 @@ def MC_control_ES(env, discount, n = 100, Q = None, max_episode_len = 100, histo
         pol_list.append(policy.copy())
         ep_list = []
         ep_list.append(None)
+        return_list = []
     
     
     for i in tqdm(range(n), desc="MC Control", disable=verbose):
@@ -159,15 +161,31 @@ def MC_control_ES(env, discount, n = 100, Q = None, max_episode_len = 100, histo
             pol_list.append(policy.copy())
             Q_list.append(Q.copy())
             ep_list.append(episode.copy())
+            return_list.append(G)
           
     if history:
-        return pol_list, Q_list, ep_list      
+        return pol_list, Q_list, ep_list, return_list    
           
     return policy, Q
 
 
 # incremental version of MC control with exploring starts. This is more efficient and can be used for infinite horizon problems. It gives the same results as the non-incremental version, but it does not store all returns in memory.
-def MC_control_ES_inc(env, discount, n=100, Q=None, max_episode_len=100, history=False, verbose=False):
+def MC_control_ES(env, discount, n=100, Q=None, max_episode_len=100, history=False, verbose=False):
+    """Monte Carlo Control with Exploring Starts (incremental version).
+    This algorithm estimates the optimal action-value function Q and the corresponding greedy policy by sampling episodes with exploring starts. It uses incremental updates to compute the average returns for each (s,a) pair, which is more memory efficient than storing all returns.
+    Args: env: The environment to interact with. Must have discrete state and action spaces.
+        discount: The discount factor (gamma) for future rewards. Should be in (0, 1].
+        n: The number of episodes to sample for learning. Must be a positive integer.
+        Q: Optional initial action-value function. If None, it will be initialized to zeros.
+        max_episode_len: Maximum length of each episode to prevent infinite loops. Must be a positive integer.
+        history: If True, the function will return the history of policies, Q-values, and
+                 and episodes for each iteration. This can be useful for analysis and visualization, but it will consume more memory.
+        verbose: If True, the function will print progress and episode details. If verbose > 1, it will also print the state transitions and rewards for each step in the episode.
+    Returns:    If history is False: A tuple (policy, Q) where policy is the learned greedy policy and Q is the learned action-value function.
+        If history is True: A tuple (pol_list, Q_list, ep_list) where pol_list is a list of policies for each iteration, Q          
+        is a list of Q-value functions for each iteration, and ep_list is a list of episodes sampled in each iteration.
+    """
+    
     assert isinstance(env.action_space, gym.spaces.Discrete)
     assert isinstance(env.observation_space, gym.spaces.Discrete)
     assert n > 0
@@ -183,9 +201,13 @@ def MC_control_ES_inc(env, discount, n=100, Q=None, max_episode_len=100, history
     N = np.zeros((env.observation_space.n, env.action_space.n), dtype=int)
 
     if history:
-        Q_list = [Q.copy()]
-        pol_list = [policy.copy()]
-        ep_list = [None]
+        Q_list = []
+        Q_list.append(Q.copy())
+        pol_list = []
+        pol_list.append(policy.copy())
+        ep_list = []
+        ep_list.append(None)
+        return_list = []
 
     for i in tqdm(range(n), desc="MC Control (Incremental)", disable=verbose):
         if verbose:
@@ -226,8 +248,9 @@ def MC_control_ES_inc(env, discount, n=100, Q=None, max_episode_len=100, history
             pol_list.append(policy.copy())
             Q_list.append(Q.copy())
             ep_list.append(episode.copy())
+            return_list.append(G)
 
     if history:
-        return pol_list, Q_list, ep_list
+        return pol_list, Q_list, ep_list, return_list
 
     return policy, Q

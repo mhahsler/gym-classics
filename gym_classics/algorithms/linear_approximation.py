@@ -13,7 +13,7 @@ def state_features(s):
     :param s: state id
     :return a state feature vector
     """
-    raise NotImplementedError("stat_features function must be implemented and overwrite gym_classics.algorithms.linear_approximation.state_features.") 
+    raise NotImplementedError("state_features function must be implemented and overwrite gym_classics.algorithms.linear_approximation.state_features.") 
 
 def v_hat(s, w):
     """
@@ -60,7 +60,7 @@ def schedule(episode, value_0=0.001, k=0.001):
     return value_0 / (1 + k * episode)
 
 
-def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_length=1000, verbose = True):
+def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_length=1000, verbose =False):
     """
     Estimate the state-value function using the semi-gradient TD(0) algorithm.
 
@@ -124,7 +124,7 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
     return w
 
 
-def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_length=1000, verbose = True):
+def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_length=1000, verbose = False, history = False):
     """
     Semi-gradient SARSA: on-policy control with function approximation.
 
@@ -174,6 +174,12 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
     if w is None:
         w = np.zeros(1 + state_features(0).shape[0] * env.action_space.n)  # Initialize weights (intercept + action weights)
 
+    if history:
+        ws = []
+        ws.append(w.copy())
+        returns = []
+        returns.append(None)
+
     # helper used later
     def epsilon_greedy_action(state, epsilon):
         if np.random.rand() < epsilon:
@@ -189,6 +195,9 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
 
         i = 0
         while not done and i < max_episode_length:
+            if history:
+                G = 0
+
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             
@@ -206,7 +215,17 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
             state = next_state
             action = next_action
             i += 1
+            
+            if history:
+                G += reward * (gamma ** (i-1))
+            
+        if history:
+            ws.append(w.copy())
+            returns.append(G)
 
+    if history:
+        return ws, returns
+    
     return w  
 
 
