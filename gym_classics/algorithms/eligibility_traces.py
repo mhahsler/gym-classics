@@ -15,7 +15,8 @@ def semi_gradient_Sarsa_lambda(
     lam,
     w=None,
     max_episode_length=1000,
-    verbose=True
+    verbose=True,
+    history=False
 ):
     """
     Semi-gradient SARSA(lambda): on-policy control with linear function approximation
@@ -63,6 +64,12 @@ def semi_gradient_Sarsa_lambda(
     if w is None:
         w = np.zeros(1 + state_features(0).shape[0] * env.action_space.n)
 
+    if history:
+        ws = []
+        ws.append(w.copy())
+        returns = []
+        ep_lens = []
+
     def epsilon_greedy_action(state, epsilon):
         if np.random.rand() < epsilon:
             return env.action_space.sample()
@@ -79,10 +86,14 @@ def semi_gradient_Sarsa_lambda(
 
         done = False
         i = 0
+        
+        G = 0  # for tracking returns if history is enabled
 
         while not done and i < max_episode_length:
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
+            
+            G += reward * (gamma ** i)  # accumulate return if history is enabled
 
             # current feature vector for (state, action)
             x = np.zeros_like(w)
@@ -125,4 +136,13 @@ def semi_gradient_Sarsa_lambda(
             action = next_action
             i += 1
 
+        if history:
+            returns.append(G)
+            ws.append(w.copy())
+            ep_lens.append(i)
+            
+        
+    if history:        
+        return w, {'ws': ws, 'returns': returns, 'ep_lens': ep_lens}
+        
     return w

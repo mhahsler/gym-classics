@@ -126,7 +126,6 @@ def MC_control_ES_textbook(env, discount, n = 100, Q = None, max_episode_len = 1
         pol_list = []
         pol_list.append(policy.copy())
         ep_list = []
-        ep_list.append(None)
         return_list = []
     
     
@@ -164,7 +163,7 @@ def MC_control_ES_textbook(env, discount, n = 100, Q = None, max_episode_len = 1
             return_list.append(G)
           
     if history:
-        return pol_list, Q_list, ep_list, return_list    
+        return policy, Q, {'policies': pol_list, 'Q_values': Q_list, 'episodes': ep_list, 'returns': return_list}
           
     return policy, Q
 
@@ -206,7 +205,6 @@ def MC_control_ES(env, discount, n=100, Q=None, max_episode_len=100, history=Fal
         pol_list = []
         pol_list.append(policy.copy())
         ep_list = []
-        ep_list.append(None)
         return_list = []
 
     for i in tqdm(range(n), desc="MC Control (Incremental)", disable=verbose):
@@ -251,6 +249,6 @@ def MC_control_ES(env, discount, n=100, Q=None, max_episode_len=100, history=Fal
             return_list.append(G)
 
     if history:
-        return pol_list, Q_list, ep_list, return_list
+        return policy, Q, {'policies': pol_list, 'Q_values': Q_list, 'episodes': ep_list, 'returns': return_list}
 
     return policy, Q

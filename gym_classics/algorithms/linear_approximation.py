@@ -109,7 +109,7 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
             done = terminated or truncated
             
             # Semi-gradient TD(0) update
-            # Note: v_hat(terminal, w) needs to be 0
+            # Note: v_hat(terminal, w) needsi to be 0
             if terminated:
                 w += alpha * (reward - v_hat(state, w)) * state_features(state)    
             else: 
@@ -178,7 +178,7 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
         ws = []
         ws.append(w.copy())
         returns = []
-        returns.append(None)
+        ep_lens = []
 
     # helper used later
     def epsilon_greedy_action(state, epsilon):
@@ -222,9 +222,10 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
         if history:
             ws.append(w.copy())
             returns.append(G)
+            ep_lens.append(i)
 
     if history:
-        return ws, returns
+        return w, {'ws': ws, 'returns': returns, 'ep_lens': ep_lens}
     
     return w  
 
