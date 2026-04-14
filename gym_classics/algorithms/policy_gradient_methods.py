@@ -5,6 +5,48 @@ from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 from tqdm import tqdm
 
+def state_features(s):
+    """
+    Convert the state id into state features. This function needs to be overwritten for the environment
+    
+    :param s: state id
+    :return a state feature vector
+    """
+    raise NotImplementedError("state_features function must be implemented and overwrite gym_classics.algorithms.linear_approximation.state_features.") 
+
+def state_action_features(s,a,env):
+    s = state_features(s,env)
+    x = np.zeros(1+len(s)*env.action_space.n)
+    x[active_weights(a, len(s)-1)] = s
+    return x
+
+def h(s,a,theta,env):
+    return np.dot(theta, state_action_features(s,a,env))
+
+def pi(s,theta,env):
+    hs = np.array([h(s,a,theta,env) for a in range(env.action_space.n)])
+    exp_hs = np.exp(hs)
+    return exp_hs / np.sum(exp_hs)
+
+def sample_episode_policy(env, pi, theta, max_episode_length=1000):
+    """
+    Sample an episode using the policy defined by pi and theta.
+    Returns a list of (state, action, reward) tuples.
+    """
+    s, _ = env.reset()
+    episode_data = []
+    
+    for t in range(max_episode_length):
+        a = np.random.choice(range(env.action_space.n), p=pi(s,theta,env))
+        next_s, r, done, _, _ = env.step(a)
+        episode_data.append((s, a, r, next_s))
+        s = next_s
+        
+        if done:
+            break
+    
+    return episode_data
+
 def REINFORCE(
     env,
     n,

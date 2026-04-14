@@ -6,41 +6,52 @@ from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 from tqdm import tqdm
 
-def state_features(s):
+def state_features(s,env):
     """
     Convert the state id into state features. This function needs to be overwritten for the environment
     
     :param s: state id
+    :param env: environment instance   
+    
     :return a state feature vector
     """
     raise NotImplementedError("state_features function must be implemented and overwrite gym_classics.algorithms.linear_approximation.state_features.") 
-
-def v_hat(s, w):
-    """
-    Estimate Value function
-    
-    :param s: state id
-    :param w: weight vector
-    :return the state value estimate
-    """
-    return np.dot(w, state_features(s))
 
 def active_weights(a, sf_len):
     """helper for q_hat()"""
     return [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
 
-def q_hat(s, a, w):
+def state_action_features(s,a,env):
+    s = state_features(s,env)
+    x = np.zeros(1+len(s)*env.action_space.n)
+    x[active_weights(a, len(s)-1)] = s
+    return x
+
+def v_hat(s, w, env):
+    """
+    Estimate Value function
+    
+    :param s: state id
+    :param w: weight vector
+    :param env: environment instance
+    
+    :return the state value estimate
+    """
+    return np.dot(w, state_features(s, env))
+
+def q_hat(s, a, w, env):
     """
     Estimate the action value function.
     
     :param s: state id
     :param a: action
     :param w: weight vector
+    :param env: environment instance
     :return the state-action value estimate
-    """
-    sf_len = state_features(0).shape[0]-1
-    active_weights = lambda a: [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
-    return np.dot(w[active_weights(a)], state_features(s))
+    """    
+    x = state_action_features(s, a, env)
+    return np.dot(w, x)
+
 
 def MSVE(V, V_true, weight=None):
     """
@@ -96,7 +107,7 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
     assert n > 0, "Number of episodes must be positive"
     assert max_episode_length > 0, "Max episode length must be positive"
     
-    w = np.zeros(state_features(0).shape[0])  # Initialize weights (intercept + x and y)
+    w = np.zeros(state_features(0, env).shape[0])  # Initialize weights (intercept + x and y)
 
     for episode in tqdm(range(n), desc="Semi-Gradient TD(0)", disable=verbose):
         state, _ = env.reset()
@@ -111,9 +122,9 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
             # Semi-gradient TD(0) update
             # Note: v_hat(terminal, w) needsi to be 0
             if terminated:
-                w += alpha * (reward - v_hat(state, w)) * state_features(state)    
+                w += alpha * (reward - v_hat(state, w, env)) * state_features(state, env)    
             else: 
-                w += alpha * (reward + gamma * v_hat(next_state, w) - v_hat(state, w)) * state_features(state)
+                w += alpha * (reward + gamma * v_hat(next_state, w, env) - v_hat(state, w, env)) * state_features(state, env)
              
             if verbose:
                 print (f"Episode {episode+1}, Step {i+1}: S={state}, A={action}, R={reward}, S'={next_state}, w={w}")
@@ -168,11 +179,10 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
     assert n > 0, "Number of episodes must be positive"
     assert max_episode_length > 0, "Max episode length must be positive"
 
-    sf_len = state_features(0).shape[0]-1
-    active_weights = lambda a: [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
+    sf_len = state_features(0, env).shape[0]-1
 
     if w is None:
-        w = np.zeros(1 + state_features(0).shape[0] * env.action_space.n)  # Initialize weights (intercept + action weights)
+        w = np.zeros(1 + state_features(0, env).shape[0] * env.action_space.n)  # Initialize weights (intercept + action weights)
 
     if history:
         ws = []
@@ -185,7 +195,7 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
         if np.random.rand() < epsilon:
             return env.action_space.sample()
         else:
-            q_values = [q_hat(state, a, w) for a in range(env.action_space.n)]
+            q_values = [q_hat(state, a, w, env) for a in range(env.action_space.n)]
             return np.argmax(q_values)
     
     for episode in tqdm(range(n), desc="Semi-Gradient SARSA(0)", disable=verbose):
@@ -201,14 +211,16 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             
+            x = state_action_features(state, action, env)
+            
             if terminated:
                 next_action = None
-                w[active_weights(action)] += alpha * (reward - q_hat(state, action, w)) * state_features(state)
+                w += alpha * (reward - q_hat(state, action, w, env)) * x
                 
             else:
                 next_action = epsilon_greedy_action(next_state, epsilon)
-                w[active_weights(action)] += alpha * (reward + gamma * q_hat(next_state, next_action, w) - q_hat(state, action, w)) * state_features(state)
-             
+                w += alpha * (reward + gamma * q_hat(next_state, next_action, w, env) - q_hat(state, action, w, env)) * x
+
             if verbose:
                 print (f"Episode {episode+1}, Step {i+1}: S={state}, A={action}, R={reward}, S'={next_state}, w={w}")
 
@@ -230,7 +242,6 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
     return w  
 
 
-
 # product from itertools is the cartesian product
 def create_fourier_basis_coefs(dim, order): 
     """ Create Fourier basis coefficients for given dimension and order. 
@@ -245,7 +256,7 @@ def transformation_fourier_basis(min, max, order):
         To use this transformation with semi_gradient_Sarsa you need to overwrite the state_features 
         function like this:
         
-        def state_features(s): return trans_fb(env.decode(s))
+        def state_features(s, env): return trans_fb(env.decode(s))
         gym_classics.algorithms.linear_approximation.state_features = state_features
         
         param min: minimum values for each dimension

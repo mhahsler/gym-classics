@@ -6,6 +6,27 @@ from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 from tqdm import tqdm
 
+def state_features(s, env):
+    """
+    Convert the state id into state features. This function needs to be overwritten for the environment
+    
+    :param s: state id
+    :param env: environment instance
+
+    :return a state feature vector
+    """
+    raise NotImplementedError("state_features function must be implemented and overwrite gym_classics.algorithms.linear_approximation.state_features.") 
+
+def active_weights(a, sf_len):
+    """helper for q_hat()"""
+    return [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
+
+def state_action_features(s,a,env):
+    s = state_features(s,env)
+    x = np.zeros(1+len(s)*env.action_space.n)
+    x[active_weights(a, len(s)-1)] = s
+    return x
+
 def semi_gradient_Sarsa_lambda(
     env,
     n,
@@ -15,7 +36,7 @@ def semi_gradient_Sarsa_lambda(
     lam,
     w=None,
     max_episode_length=1000,
-    verbose=True,
+    verbose=False,
     history=False
 ):
     """
@@ -57,12 +78,8 @@ def semi_gradient_Sarsa_lambda(
     assert n > 0, "number of episodes must be positive"
     assert max_episode_length > 0, "max episode length must be positive"
 
-    sf = state_features(0)
-    sf_len = sf.shape[0] - 1
-    active_weights = lambda a: [0] + list(range(a * sf_len + 1, a * sf_len + sf_len + 1))
-
     if w is None:
-        w = np.zeros(1 + state_features(0).shape[0] * env.action_space.n)
+        w = np.zeros(1 + state_features(0, env).shape[0] * env.action_space.n)
 
     if history:
         ws = []
@@ -73,7 +90,7 @@ def semi_gradient_Sarsa_lambda(
     def epsilon_greedy_action(state, epsilon):
         if np.random.rand() < epsilon:
             return env.action_space.sample()
-        q_values = [q_hat(state, a, w) for a in range(env.action_space.n)]
+        q_values = [q_hat(state, a, w, env) for a in range(env.action_space.n)]
         return np.argmax(q_values)
 
     for episode in tqdm(range(n), desc="Semi-Gradient SARSA(lambda)", disable=verbose):
@@ -96,21 +113,20 @@ def semi_gradient_Sarsa_lambda(
             G += reward * (gamma ** i)  # accumulate return if history is enabled
 
             # current feature vector for (state, action)
-            x = np.zeros_like(w)
-            x[active_weights(action)] = state_features(state)
+            x = state_action_features(state, action, env)
 
             # update trace
             z = gamma * lam * z + (1 - alpha * gamma * lam * np.dot(z, x)) * x
 
             if terminated:
-                delta = reward - q_hat(state, action, w)
+                delta = reward - q_hat(state, action, w, env)
             else:
                 next_action = epsilon_greedy_action(next_state, epsilon)
-                delta = reward + gamma * q_hat(next_state, next_action, w) - q_hat(state, action, w)
+                delta = reward + gamma * q_hat(next_state, next_action, w, env) - q_hat(state, action, w, env)
 
             # semi-gradient weight update
-            Q = q_hat(state, action, w)
-            Q_prime = q_hat(next_state, next_action, w) if not terminated else 0            
+            Q = q_hat(state, action, w, env)
+            Q_prime = q_hat(next_state, next_action, w, env) if not terminated else 0            
             w += alpha * (delta + Q - Q_old) * z - alpha * (Q - Q_old) * x
 
             Q_old = Q_prime
