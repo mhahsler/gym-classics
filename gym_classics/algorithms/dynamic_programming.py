@@ -39,14 +39,14 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
         verbose: If True, prints progress information.
 
     Returns:
-        The optimal value function V. If Vs is True, also returns a list of intermediate value functions.
+        The optimal value function V. If history is True, returns a list of intermediate value functions.
     """
     
     assert isinstance(env, GymClassicsBaseEnv)
     assert 0.0 <= discount <= 1.0
     assert precision > 0.0
     
-    V = np.zeros(env.observation_space.n, dtype=np.float64)  
+    V = np.zeros(len(env.states()), dtype=np.float64)  
     if history:
         V_list = []
         V_list.append(V.copy())
@@ -62,7 +62,7 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
         V_old = V.copy()
 
         for s in env.states():
-            Q_values = [backup(env, discount, V, s, a) for a in range(env.action_space.n)]
+            Q_values = [backup(env, discount, V, s, a) for a in range(len(env.actions()))]
             V[s] = np.max(Q_values)
 
         if history:
@@ -83,6 +83,18 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
 ### Policy Iteration
 
 def policy_evaluation(env, discount, policy, precision=1e-3, max_backups=1000):
+    """Evaluates a given policy to compute its value function.
+    
+    Args:
+        env: A gym-classics environment with model access.
+        discount: The discount factor (0 <= discount <= 1).
+        policy: The policy to evaluate.
+        precision: The precision for convergence (default: 1e-3).
+        max_backups: Maximum number of backups to perform to prevent infinite loops (default: 1000).
+        
+    Returns:
+        The value function for the given policy.
+    """
     
     assert isinstance(env, GymClassicsBaseEnv)
     assert 0.0 <= discount <= 1.0
@@ -104,6 +116,18 @@ def policy_evaluation(env, discount, policy, precision=1e-3, max_backups=1000):
 
 
 def policy_improvement(env, discount, policy, V_policy, precision=1e-3):
+    """Improves the policy based on the given value function.
+    
+    Args:
+        env: A gym-classics environment with model access.
+        discount: The discount factor (0 <= discount <= 1).
+        policy: The current policy to improve.
+        V_policy: The value function of the current policy.
+        precision: The precision for determining stability (default: 1e-3).
+        
+    Returns:
+        A tuple (improved_policy, stable) where stable is True if the policy did not change.
+    """
     policy_old = policy.copy()
     V_old = V_policy.copy()
 
@@ -127,11 +151,11 @@ def policy_iteration(env, discount, precision=1e-3, max_backups=1000, history = 
         discount: The discount factor (0 <= discount <= 1).
         precision: The precision for convergence (default: 1e-3).
         max_backups: Maximum number of iterations used in policy evaluation. Note: this prevents an infinite loop for policies that do not reach a terminal state.
-        history: If True, returns a list of intermediate value functions.
+        history: If True, returns lists of intermediate policies and value functions.
         verbose: If True, prints progress information.
 
     Returns:
-        The optimal value function V. If Vs is True, also returns a list of intermediate value functions.
+        The optimal policy. If history is True, returns a tuple (policy_list, V_list) containing lists of intermediate policies and value functions.
     """
     
     assert isinstance(env, GymClassicsBaseEnv)

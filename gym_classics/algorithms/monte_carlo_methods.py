@@ -3,11 +3,13 @@ import random
 from collections import defaultdict
 import gymnasium as gym
 from gym_classics.envs.abstract.gridworld import Gridworld
+from gym_classics.envs.abstract.base_env import BaseEnv
 from gym_classics.algorithms.policy import random_policy, random_argmax
 from tqdm import tqdm
 
 def sample_episode(env, policy = None, start_state = None, start_action = None, epsilon = 0, max_len = 1000, verbose = False):
     
+    assert isinstance(env.observation_space, gym.spaces.Discrete)  
     assert 0.0 <= epsilon <= 1.0
     assert max_len > 0
     
@@ -20,14 +22,14 @@ def sample_episode(env, policy = None, start_state = None, start_action = None, 
     episode = []
     s, r = env.reset()
     
+    # force custom start state could be a state or an state index.
     if not start_state is None:
-        s = start_state
-        if isinstance(env, Gridworld):
-            env.state = env.unwrapped.decode(start_state)
+        if isinstance(env, BaseEnv):
+            env.state = env.id2state(start_state)
         else:
             env.state = start_state
+        s = start_state
             
-    
     step = 0
     done = False
     while not done and step < max_len:
@@ -36,8 +38,9 @@ def sample_episode(env, policy = None, start_state = None, start_action = None, 
         # epsilon greedy choice?
         if epsilon > 0:
             if (random.random() < epsilon):
-                a = np.random.choice(env.action_space.n) 
+                a = np.random.choice(env.actions()) 
         
+        # for exploring starts
         if step == 0 and not start_action is None:
             a = start_action
         
@@ -56,11 +59,13 @@ def sample_episode(env, policy = None, start_state = None, start_action = None, 
 
 def on_policy_state_distribution(env, pol, discount = 1, epsilon = 0, n = 100):
     """Estimate the (discounted) state distribution of a policy by sampling episodes."""
+    
+    assert isinstance(env.observation_space, gym.spaces.Discrete)  
     assert 0.0 <= epsilon <= 1.0
     assert 0.0 < discount <= 1.0
     assert n > 0
     
-    state_cnts = np.zeros(env.observation_space.n)
+    state_cnts = np.zeros(len(env.states()))
     
     for _ in tqdm(range(n), desc="Sampling Episodes", disable=verbose):
         episode = np.array(sample_episode(env, policy=pol, epsilon = epsilon))
@@ -75,7 +80,6 @@ def on_policy_state_distribution(env, pol, discount = 1, epsilon = 0, n = 100):
 
 def MC_prediction(env, policy, discount, n = 100, max_episode_len = 100, verbose = False):
     assert isinstance(env.action_space, gym.spaces.Discrete)
-    assert isinstance(env.observation_space, gym.spaces.Discrete)
     assert n > 0
     assert max_episode_len > 0
     
@@ -100,22 +104,20 @@ def MC_prediction(env, policy, discount, n = 100, max_episode_len = 100, verbose
             if not s in visited[0:t]:
                 Returns[s].append(G)
 
-    Vs = np.array([np.mean(Returns[s]) if len(Returns[s]) else np.nan for s in range(env.observation_space.n)])
-    
+    Vs = np.array([np.mean(Returns[s]) if len(Returns[s]) else np.nan for s in env.states()])
     return Vs
 
 # this version does not use incremental updates and is very slow!
 def MC_control_ES_textbook(env, discount, n = 100, Q = None, max_episode_len = 100, history = False, verbose = False): 
     assert isinstance(env.action_space, gym.spaces.Discrete)
-    assert isinstance(env.observation_space, gym.spaces.Discrete)
     assert n > 0
     assert max_episode_len > 0
-    assert Q is None or Q.shape == (env.observation_space.n, env.action_space.n)
+    assert Q is None or Q.shape == (len(env.states()), len(env.actions()))
     
     policy = random_policy(env)
     
     if Q is None:
-        Q = np.zeros((env.observation_space.n, env.action_space.n))
+        Q = np.zeros((len(env.states()), len(env.actions())))
     
     # lists that grow are very slow. We should use a running average instead. But this is easier to read and understand.
     Returns = defaultdict(list) # a list for each (s,a)
@@ -134,8 +136,8 @@ def MC_control_ES_textbook(env, discount, n = 100, Q = None, max_episode_len = 1
             print("episode", i," of ", n)
         
         # Sample starting (s,a)
-        s = np.random.choice(env.observation_space.n)
-        a = np.random.choice(env.action_space.n)
+        s = np.random.choice(env.states())
+        a = np.random.choice(env.actions())
         
         episode = sample_episode(env, policy, start_state = s, start_action = a, max_len=max_episode_len, verbose = verbose >1)
         G = 0
@@ -186,18 +188,17 @@ def MC_control_ES(env, discount, n=100, Q=None, max_episode_len=100, history=Fal
     """
     
     assert isinstance(env.action_space, gym.spaces.Discrete)
-    assert isinstance(env.observation_space, gym.spaces.Discrete)
     assert n > 0
     assert max_episode_len > 0
-    assert Q is None or Q.shape == (env.observation_space.n, env.action_space.n)
+    assert Q is None or Q.shape == (len(env.states()), len(env.actions()))
 
     policy = random_policy(env)
 
     if Q is None:
-        Q = np.zeros((env.observation_space.n, env.action_space.n))
+        Q = np.zeros((len(env.states()), len(env.actions())))
 
     # Count how many first-visit returns have been used for each (s, a)
-    N = np.zeros((env.observation_space.n, env.action_space.n), dtype=int)
+    N = np.zeros((len(env.states()), len(env.actions())), dtype=int)
 
     if history:
         Q_list = []
@@ -212,8 +213,8 @@ def MC_control_ES(env, discount, n=100, Q=None, max_episode_len=100, history=Fal
             print("episode", i, "of", n)
 
         # Exploring starts
-        s = np.random.choice(env.observation_space.n)
-        a = np.random.choice(env.action_space.n)
+        s = np.random.choice(env.states())
+        a = np.random.choice(env.actions())
 
         episode = sample_episode(
             env,

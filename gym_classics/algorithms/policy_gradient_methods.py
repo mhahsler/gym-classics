@@ -5,7 +5,7 @@ from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 from tqdm import tqdm
 
-def state_features(s):
+def state_features(s,env):
     """
     Convert the state id into state features. This function needs to be overwritten for the environment
     
@@ -13,6 +13,10 @@ def state_features(s):
     :return a state feature vector
     """
     raise NotImplementedError("state_features function must be implemented and overwrite gym_classics.algorithms.linear_approximation.state_features.") 
+
+def active_weights(a, sf_len):
+    """helper for q_hat()"""
+    return [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
 
 def state_action_features(s,a,env):
     s = state_features(s,env)

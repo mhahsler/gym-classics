@@ -1,16 +1,22 @@
 from cProfile import label
-
 from gym_classics.envs.abstract.base_env import BaseEnv
+from gymnasium.spaces import MultiDiscrete
 
 import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
+# we need to overwrite:
+# * _next_state
+# * _reward
+# * _done
+# * _generate_transitions
+
 class Gridworld(BaseEnv):
     """Abstract class for creating gridworld-type environments."""
 
-    def __init__(self, layout_string, n_actions=None, action_labels = ["up", "right", "down", "left"]):
+    def __init__(self, layout_string, action_labels = ["up", "right", "down", "left"], tabular = True):
         """Initializes the gridworld environment from a layout string. The layout string should be a rectangular grid of characters, where each character represents a type of cell:
         - 'S': Start (may be more than one)
         - 'G': Goal (may be more than one)
@@ -19,17 +25,15 @@ class Gridworld(BaseEnv):
         - All other characters are treated as empty cells that the agent can occupy.
         
         param layout_string: The string representation of the gridworld layout.
-        param n_actions: The number of actions. If None, defaults to 4 (up, right, down, left). You can specify additional actions by increasing the number of actions to use in the `_next_state` method.
         param action_labels: The labels for the actions. Defaults to ["up", "right", "down", "left"]. You can specify additional labels for extra actions.
         """
-        self.dims, starts, self._goals, self._blocks, self._extra_labels = parse_gridworld(
-            layout_string)
-
         
-        self.action_labels = action_labels
-        if n_actions is None:
-            n_actions = len(action_labels)
-        super().__init__(starts, n_actions)
+        self.dims, starts, self._goals, self._blocks, self._extra_labels = parse_gridworld(layout_string)
+
+        super().__init__(starts, action_labels = action_labels, tabular = tabular, reachable_states = None)
+        
+        if not tabular:
+            self.observation_space = MultiDiscrete(self.dims)
 
     def _next_state(self, state, action):
         next_state = self._move(state, action)
@@ -59,18 +63,19 @@ class Gridworld(BaseEnv):
 
     def _generate_transitions(self, state, action):
         yield self._deterministic_step(state, action)
+        
+    def _reward(self, state, action, next_state):      
+        if next_state in self._goals: 
+            return 1.0  
+        return 0.0
+    
+    def _done(self, state, action, next_state):
+        return state in self._goals
 
     ### Addition to the interface
     
-    ### TODO: move to base class?
-    def encode_action(self, action_label):
-        """Converts a action label into a numeric action ID."""
-        action_ids = dict(zip(self.action_labels, range(len(self.action_labels))))
-        id = action_ids.get(action_label, -1)
-        return id
-
-
-    def decode_action(self, action, type="text"):
+    ## overwrite so we have arrows
+    def id2action(self, action, type="text"):
         """Converts a numeric action ID into a label. Choices for type are 'text' and 'arrow'."""
         action = int(action)
         
@@ -108,26 +113,27 @@ class Gridworld(BaseEnv):
             for x in range(self.dims[0]):
                 state = (x, y)
                 if self.is_reachable(state):
-                    s = self.encode(state)
-                    m[x,y] = value[s]
+                    m[x,y] = value[self.state2id(state)]
                 else:
                     pass
 
         return m.transpose() 
     
     def print(self, array, decimals=2, separator=' ' * 2, signed=True, transpose=False):
-    # First get the string length of the longest number
+        """Prints a gridworld array in a human-readable format. The array should be a vector with values for states in the gridworld, 
+        such as a value function or policy."""
+        
         def formatter(x):
             string = '{:' + ('+' if signed else '') + '.' + str(decimals) + 'f}'
             return string.format(x)
         maxlen = max([len(formatter(x)) for x in array])
 
-        # Now we can actually print ithe values
+        # Now we can actually print the values
         for y in reversed(range(self.dims[1])):
             for x in range(self.dims[0]):
                 state = (x, y) if not transpose else (y, x)
                 if self.is_reachable(state):
-                    s = self.encode(state)
+                    s = self.state2id(state)
                     print(formatter(array[s]).rjust(maxlen), end=separator)
                 else:
                     print(' ' * maxlen, end=separator)
@@ -164,7 +170,7 @@ class Gridworld(BaseEnv):
                 policy[step[0]] = step[1]
 
         if not policy is None:
-            labels = [self.decode_action(a, type = "arrow") for a in policy]
+            labels = [self.id2action(a, type = "arrow") for a in policy]
 
         if isinstance(labels, bool) and labels:
                 labels = np.round(V, 2)
@@ -172,13 +178,13 @@ class Gridworld(BaseEnv):
         if not labels is None:
             labels = self.to_matrix(labels)
             
-        extra = [""] * self.observation_space.n
+        extra = [""] * self.dims[0] * self.dims[1]
         for s in self._starts:
-            extra[self.encode(s)] = "S"
+            extra[self.state2id(s)] = "S"
         for s in self._goals:
-            extra[self.encode(s)] = "G"
+            extra[self.state2id(s)] = "G"
         for s, label in self._extra_labels:
-            extra[self.encode(s)] = label
+            extra[self.state2id(s)] = label
         extra = self.to_matrix(extra)
         
         _image(m, title=title, labels=labels, extra=extra, cmap=cmap, clim = clim, origin=origin, colorbar=colorbar)  
@@ -281,7 +287,9 @@ def parse_gridworld(layout_string):
         assert len(l) == W, "layout string is not rectangular; check dimensions"
     dims = (W, H)
 
-    starts = set()
+    starts = list() # so we can sample from it
+    
+    # all others are hashed into sets for fast lookup
     goals = set()
     blocks = set()
     extra_labels = set()
@@ -293,7 +301,7 @@ def parse_gridworld(layout_string):
             char = lines[row][col]
 
             if char == 'S':  # Start (may be more than one)
-                starts.add(coords)
+                starts.append(coords)
             elif char == 'G':  # Goal (may be more than one)
                 goals.add(coords)
             elif char == 'X':  # Block (agent cannot occupy these cells)
@@ -304,4 +312,4 @@ def parse_gridworld(layout_string):
                 extra_labels.add((coords, char))
             #    raise ValueError(f"invalid character '{char}' at {coords}")
 
-    return dims, frozenset(starts), frozenset(goals), frozenset(blocks), frozenset(extra_labels)
+    return dims, starts, goals, blocks, extra_labels

@@ -14,7 +14,7 @@ def random_policy(env):
     assert isinstance(env.action_space, gym.spaces.Discrete)
     assert isinstance(env.observation_space, gym.spaces.Discrete)
     
-    return np.random.choice(env.action_space.n, size=env.observation_space.n)
+    return np.random.choice(env.actions(), size=len(env.states()))
 
 # only for gym-classics environments!
 def encode_policy(env, policy, type = "text"):
@@ -24,10 +24,10 @@ def encode_policy(env, policy, type = "text"):
 
 
 # this is a copy from DP to prevent circular imports.
-def _backup(env, discount, V, state, action):
+def _backup(env, discount, V, s, a):
     V = np.array(V)
     
-    next_states, rewards, terminals, probs = env.model(state, action)
+    next_states, rewards, terminals, probs = env.model(s, a)
     bootstraps = (1.0 - terminals) * V[next_states]
     return np.sum(probs * (rewards + discount * bootstraps))
 
@@ -39,16 +39,17 @@ def greedy_policy(env, V, discount=1):
     :param V: the value function as a 1-D numpy array
     :param discount: discount factor
     """
-    
     assert isinstance(env, GymClassicsBaseEnv)
+    assert isinstance(env.action_space, gym.spaces.Discrete)
+    assert isinstance(env.observation_space, gym.spaces.Discrete)
     assert 0.0 <= discount <= 1.0
     
-    policy = np.zeros(env.observation_space.n, dtype=np.int64)
+    policy = np.zeros(len(env.states()), dtype=np.int64)
 
     env = env.unwrapped
     
     for s in env.states():
-        Q_values = [_backup(env, discount, V, s, a) for a in range(env.action_space.n)]
+        Q_values = [_backup(env, discount, V, s, a) for a in range(len(env.actions()))]
         policy[s] = random_argmax(Q_values)
 
     return policy

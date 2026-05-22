@@ -2,6 +2,7 @@ import numpy as np
 from itertools import product
 
 from gym_classics.algorithms.linear_approximation import state_features, q_hat  
+from gym_classics.algorithms.schedules import Schedule, ConstantSchedule
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 from tqdm import tqdm
@@ -71,12 +72,15 @@ def semi_gradient_Sarsa_lambda(
     """
 
     assert isinstance(env, GymClassicsBaseEnv), "env must be an instance of GymClassicsBaseEnv"
-    assert alpha > 0 and alpha <= 1, "alpha must be in (0,1]"
     assert gamma >= 0 and gamma <= 1, "gamma must be in [0,1]"
     assert lam >= 0 and lam <= 1, "lambda must be in [0,1]"
-    assert epsilon >= 0 and epsilon <= 1, "epsilon must be in [0,1]"
     assert n > 0, "number of episodes must be positive"
     assert max_episode_length > 0, "max episode length must be positive"
+
+    if not isinstance(alpha, Schedule):
+        alpha = ConstantSchedule(alpha)
+    if not isinstance(epsilon, Schedule):
+        epsilon = ConstantSchedule(epsilon)
 
     if w is None:
         w = np.zeros(1 + state_features(0, env).shape[0] * env.action_space.n)
@@ -95,7 +99,7 @@ def semi_gradient_Sarsa_lambda(
 
     for episode in tqdm(range(n), desc="Semi-Gradient SARSA(lambda)", disable=verbose):
         state, _ = env.reset()
-        action = epsilon_greedy_action(state, epsilon)
+        action = epsilon_greedy_action(state, epsilon(episode))
 
         # eligibility trace vector, same size as w
         z = np.zeros_like(w)
@@ -116,18 +120,18 @@ def semi_gradient_Sarsa_lambda(
             x = state_action_features(state, action, env)
 
             # update trace
-            z = gamma * lam * z + (1 - alpha * gamma * lam * np.dot(z, x)) * x
+            z = gamma * lam * z + (1 - alpha(episode) * gamma * lam * np.dot(z, x)) * x
 
             if terminated:
                 delta = reward - q_hat(state, action, w, env)
             else:
-                next_action = epsilon_greedy_action(next_state, epsilon)
+                next_action = epsilon_greedy_action(next_state, epsilon(episode))
                 delta = reward + gamma * q_hat(next_state, next_action, w, env) - q_hat(state, action, w, env)
 
             # semi-gradient weight update
             Q = q_hat(state, action, w, env)
             Q_prime = q_hat(next_state, next_action, w, env) if not terminated else 0            
-            w += alpha * (delta + Q - Q_old) * z - alpha * (Q - Q_old) * x
+            w += alpha(episode) * (delta + Q - Q_old) * z - alpha(episode) * (Q - Q_old) * x
 
             Q_old = Q_prime
 

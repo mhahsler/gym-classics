@@ -36,8 +36,7 @@ def gridworld_animate(env, Vs, policies = None, interval = 1000, repeat=False, c
     mazes = [env.to_matrix(V) for V in Vs]
 
     if not policies is None:
-        #policies = [env.to_matrix([env.decode_action(a, type = "arrow") for a in policy]) for policy in policies]
-        policies = [[env.decode_action(a, type = "arrow") for a in policy] for policy in policies]
+        policies = [[env.id2action(a, type = "arrow") for a in policy] for policy in policies]
 
     fig, ax = plt.subplots()
 
@@ -46,8 +45,8 @@ def gridworld_animate(env, Vs, policies = None, interval = 1000, repeat=False, c
     title = ax.set_title("")
     labels = []
     if not policies is None:
-        for s in range(env.observation_space.n):
-            (i,j) = env.decode(s)
+        for s in env.states():
+            (i,j) = env.id2state(s)
             labels.append(ax.text(i, j, '', ha='center', va='center', color='black', fontsize=10))
     
     plt.colorbar(im, ax=ax)
@@ -65,8 +64,8 @@ def gridworld_animate(env, Vs, policies = None, interval = 1000, repeat=False, c
         return im, title, *labels,
     
     if not policies is None:
-        for s in range(env.observation_space.n):
-            (i,j) = env.decode(s)
+        for s in env.states():
+            (i,j) = env.id2state(s)
             labels.append(ax.text(i, j, '', ha='center', va='center', color='black', fontsize=10))
 
     def step(i):

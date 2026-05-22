@@ -2,6 +2,7 @@ import numpy as np
 from itertools import product
 
 from gym_classics.algorithms.policy import random_policy, random_argmax
+from gym_classics.algorithms.schedules import Schedule, ConstantSchedule
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 from tqdm import tqdm
@@ -102,11 +103,13 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
         Returns the learned weight vector for the approximate value function.
     """
     assert isinstance(env, GymClassicsBaseEnv), "env must be an instance of gym.Env"
-    assert alpha > 0 and alpha <= 1, "Alpha must be in (0,1]"
     assert gamma >= 0 and gamma <= 1, "Gamma must be in [0,1]"
     assert n > 0, "Number of episodes must be positive"
     assert max_episode_length > 0, "Max episode length must be positive"
     
+    if not isinstance(alpha, Schedule):
+        alpha = ConstantSchedule(alpha)
+
     w = np.zeros(state_features(0, env).shape[0])  # Initialize weights (intercept + x and y)
 
     for episode in tqdm(range(n), desc="Semi-Gradient TD(0)", disable=verbose):
@@ -122,9 +125,9 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
             # Semi-gradient TD(0) update
             # Note: v_hat(terminal, w) needsi to be 0
             if terminated:
-                w += alpha * (reward - v_hat(state, w, env)) * state_features(state, env)    
+                w += alpha(episode) * (reward - v_hat(state, w, env)) * state_features(state, env)    
             else: 
-                w += alpha * (reward + gamma * v_hat(next_state, w, env) - v_hat(state, w, env)) * state_features(state, env)
+                w += alpha(episode) * (reward + gamma * v_hat(next_state, w, env) - v_hat(state, w, env)) * state_features(state, env)
              
             if verbose:
                 print (f"Episode {episode+1}, Step {i+1}: S={state}, A={action}, R={reward}, S'={next_state}, w={w}")
@@ -173,11 +176,14 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
     """
     
     assert isinstance(env, GymClassicsBaseEnv), "env must be an instance of gym.Env"
-    assert alpha > 0 and alpha <= 1, "Alpha must be in (0,1]"
     assert gamma >= 0 and gamma <= 1, "Gamma must be in [0,1]"
-    assert epsilon >=0 and epsilon <=1, "Epsilon must be in [0,1]"
     assert n > 0, "Number of episodes must be positive"
     assert max_episode_length > 0, "Max episode length must be positive"
+
+    if not isinstance(alpha, Schedule):
+        alpha = ConstantSchedule(alpha)
+    if not isinstance(epsilon, Schedule):
+        epsilon = ConstantSchedule(epsilon)
 
     sf_len = state_features(0, env).shape[0]-1
 
@@ -200,7 +206,7 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
     
     for episode in tqdm(range(n), desc="Semi-Gradient SARSA(0)", disable=verbose):
         state, _ = env.reset()
-        action = epsilon_greedy_action(state, epsilon)
+        action = epsilon_greedy_action(state, epsilon(episode))
         done = False
 
         i = 0
@@ -215,11 +221,11 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
             
             if terminated:
                 next_action = None
-                w += alpha * (reward - q_hat(state, action, w, env)) * x
+                w += alpha(episode) * (reward - q_hat(state, action, w, env)) * x
                 
             else:
-                next_action = epsilon_greedy_action(next_state, epsilon)
-                w += alpha * (reward + gamma * q_hat(next_state, next_action, w, env) - q_hat(state, action, w, env)) * x
+                next_action = epsilon_greedy_action(next_state, epsilon(episode))
+                w += alpha(episode) * (reward + gamma * q_hat(next_state, next_action, w, env) - q_hat(state, action, w, env)) * x
 
             if verbose:
                 print (f"Episode {episode+1}, Step {i+1}: S={state}, A={action}, R={reward}, S'={next_state}, w={w}")
