@@ -14,6 +14,18 @@ class ConstantSchedule(Schedule):
     def __call__(self, t):
         return self.value
 
+class StepSchedule(Schedule):
+    """A schedule that always returns a constant value."""
+    def __init__(self, high_value, low_value, steps):
+        self.high_value = float(high_value)
+        self.low_value = float(low_value)
+        self.steps = int(steps)
+
+    def __call__(self, t):
+        if t < self.steps:
+            return self.high_value
+        return self.low_value
+
 class LinearDecaySchedule(Schedule):
     """A schedule that decays linearly from initial_value to min_value over decay_steps."""
     def __init__(self, initial_value, min_value, decay_steps):
