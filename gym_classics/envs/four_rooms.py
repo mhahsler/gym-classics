@@ -1,7 +1,7 @@
 from gym_classics.envs.abstract.noisy_gridworld import NoisyGridworld
 
 
-class FourRooms(NoisyGridworld):
+class FourRooms(Gridworld):
     """An 11x11 gridworld segmented into four rooms. The agent begins in the bottom-left
     cell; the goal is in the top-right cell. Actions are noisy; instead of the original
     transition probabilities, this implementation uses the 80-10-10 rule from
@@ -20,7 +20,7 @@ class FourRooms(NoisyGridworld):
 
     layout = """
 |     X     |
-|     X     |
+|     X   G |
 |           |
 |     X     |
 |     X     |
