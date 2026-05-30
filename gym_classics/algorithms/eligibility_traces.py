@@ -1,3 +1,7 @@
+"""This file implements the semi-gradient SARSA(lambda) algorithm for control with linear function approximation and eligibility traces. 
+The user needs to implement the state_features function to convert states to feature vectors."""
+
+
 import numpy as np
 from itertools import product
 
@@ -71,7 +75,6 @@ def semi_gradient_Sarsa_lambda(
         Learned weight vector.
     """
 
-    assert isinstance(env, GymClassicsBaseEnv), "env must be an instance of GymClassicsBaseEnv"
     assert gamma >= 0 and gamma <= 1, "gamma must be in [0,1]"
     assert lam >= 0 and lam <= 1, "lambda must be in [0,1]"
     assert n > 0, "number of episodes must be positive"
@@ -83,7 +86,8 @@ def semi_gradient_Sarsa_lambda(
         epsilon = ConstantSchedule(epsilon)
 
     if w is None:
-        w = np.zeros(1 + state_features(0, env).shape[0] * env.action_space.n)
+        state, _ = env.reset()
+        w = np.zeros(1 + len(state_features(state, env)) * env.action_space.n)
 
     if history:
         ws = []

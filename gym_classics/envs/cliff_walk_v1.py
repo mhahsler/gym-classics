@@ -27,9 +27,9 @@ class CliffWalk(Gridworld):
 |S          G|
 """
 
-    def __init__(self):
+    def __init__(self, tabular = True):
         self._cliff = frozenset((x, 0) for x in range(1, 11))
-        super().__init__(CliffWalk.layout)
+        super().__init__(CliffWalk.layout, tabular = tabular)
     
     # cliff is unreachable. Leads to the start state    
     def _next_state(self, state, action):

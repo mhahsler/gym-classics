@@ -14,8 +14,8 @@ class LMazeGridworld(Gridworld):
 |          |
 """
 
-    def __init__(self):
-        super().__init__(self.layout)
+    def __init__(self, tabular = True):
+        super().__init__(self.layout, tabular = tabular)
         
     def _reward(self, state, action, next_state):      
         if next_state in self._goals: 

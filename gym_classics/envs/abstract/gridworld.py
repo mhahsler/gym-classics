@@ -26,6 +26,8 @@ class Gridworld(BaseEnv):
         
         param layout_string: The string representation of the gridworld layout.
         param action_labels: The labels for the actions. Defaults to ["up", "right", "down", "left"]. You can specify additional labels for extra actions.
+        param tabular: If True, the environment will use a tabular state representation (i.e., states are represented as integer IDs). 
+            If False, states will be represented as their (x,y) coordinates. Defaults to True.
         """
         
         self.dims, starts, self._goals, self._blocks, self._extra_labels = parse_gridworld(layout_string)
@@ -165,7 +167,7 @@ class Gridworld(BaseEnv):
 
         if not episode is None:
             # start with policy that hides all actions with an index past the last action.
-            policy = np.full(self.observation_space.n, self.action_space.n)
+            policy = np.full(len(self.states()), len(self.actions()))
             for step in episode:
                 policy[step[0]] = step[1]
 

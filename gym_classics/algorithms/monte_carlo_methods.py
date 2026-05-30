@@ -1,15 +1,51 @@
+"""This file implements tabular Monte Carlo methods for policy evaluation and control in gym-classics environments 
+with discrete state spaces.
+"""
+
 import numpy as np
 import random
 from collections import defaultdict
 import gymnasium as gym
 from gym_classics.envs.abstract.gridworld import Gridworld
 from gym_classics.envs.abstract.base_env import BaseEnv
-from gym_classics.algorithms.policy import random_policy, random_argmax
+from gym_classics.algorithms.policy import random_policy, random_argmax, make_multidiscrete_policy
 from tqdm import tqdm
 
-def sample_episode(env, policy = None, start_state = None, start_action = None, epsilon = 0, max_len = 1000, verbose = False):
+def states(env):
+    """Returns a list of all states in the environment."""
+    assert isinstance(env.observation_space, gym.spaces.Discrete) or isinstance(env.observation_space, gym.spaces.MultiDiscrete), "Tabular methods require discrete state space."  
     
-    assert isinstance(env.observation_space, gym.spaces.Discrete)  
+    if isinstance(env.observation_space, gym.spaces.Discrete):
+        return list(range(env.observation_space.n))
+    elif isinstance(env.observation_space, gym.spaces.MultiDiscrete):
+        return [tuple(s) for s in np.array(np.meshgrid(*[range(n) for n in env.observation_space.nvec])).T.reshape(-1, len(env.observation_space.nvec))]
+    else:
+        raise ValueError("Unsupported observation space type for state enumeration.")
+
+
+def sample_episode(env, policy = None, start_state = None, start_action = None, epsilon = 0, max_len = 1000, verbose = False):
+    """
+    Samples an episode from the environment using the given policy and starting conditions.
+    
+    Args: 
+        env: The environment to sample from.
+        policy: A mapping from states to actions. For discrete state spaces a action list in the order of states. 
+                For 
+        If None, a random policy will be used.
+        start_state: The state to start the episode from (if None, the environment's default starting state will be used).
+        start_action: The action to take in the first step of the episode (if None, the action will be chosen according to the policy or randomly if no policy is given).
+        epsilon: The probability of taking a random action instead of the policy's action at each step (for epsilon-greedy exploration).
+        max_len: The maximum length of the episode to prevent infinite loops.
+        verbose: If True, prints the state transitions and rewards for each step in the episode.
+    
+    Returns:
+        A list of (state, action, reward, next_state) tuples representing the episode. 
+        The episode ends when a terminal state is reached or when max_len steps have been taken.    
+        Note that the last tuple in the episode will have a next_state that is either terminal or the 
+        state at which the episode was truncated due to max_len.  
+    """
+    
+    assert isinstance(env.observation_space, gym.spaces.Discrete) or isinstance(env.observation_space, gym.spaces.MultiDiscrete), "Tabular methods require discrete state space."  
     assert 0.0 <= epsilon <= 1.0
     assert max_len > 0
     
@@ -19,15 +55,20 @@ def sample_episode(env, policy = None, start_state = None, start_action = None, 
         if verbose:
             print("*** No policy given, sampling using random actions!")
     
+    if isinstance(env.observation_space, gym.spaces.MultiDiscrete):
+        policy = make_multidiscrete_policy(policy, env)
+    
     episode = []
     s, r = env.reset()
     
     # force custom start state could be a state or an state index.
     if not start_state is None:
-        if isinstance(env, BaseEnv):
+        if isinstance(env, BaseEnv) and env.tabular:
             env.state = env.id2state(start_state)
+        elif isinstance(env.observation_space, gym.spaces.Discrete):
+            env.state = int(start_state)
         else:
-            env.state = start_state
+            raise ValueError("Custom start state is only supported for tabular gym-classics environments and environments with a MultiDiscrete observation space.")
         s = start_state
             
     step = 0
@@ -38,7 +79,7 @@ def sample_episode(env, policy = None, start_state = None, start_action = None, 
         # epsilon greedy choice?
         if epsilon > 0:
             if (random.random() < epsilon):
-                a = np.random.choice(env.actions()) 
+                a = env.action_space.sample()
         
         # for exploring starts
         if step == 0 and not start_action is None:
@@ -60,12 +101,12 @@ def sample_episode(env, policy = None, start_state = None, start_action = None, 
 def on_policy_state_distribution(env, pol, discount = 1, epsilon = 0, n = 100):
     """Estimate the (discounted) state distribution of a policy by sampling episodes."""
     
-    assert isinstance(env.observation_space, gym.spaces.Discrete)  
+    assert isinstance(env.observation_space, gym.spaces.Discrete), "Tabular methods require discrete state space."   
     assert 0.0 <= epsilon <= 1.0
     assert 0.0 < discount <= 1.0
     assert n > 0
     
-    state_cnts = np.zeros(len(env.states()))
+    state_cnts = np.zeros(env.observation_space.n)
     
     for _ in tqdm(range(n), desc="Sampling Episodes", disable=verbose):
         episode = np.array(sample_episode(env, policy=pol, epsilon = epsilon))
@@ -79,7 +120,7 @@ def on_policy_state_distribution(env, pol, discount = 1, epsilon = 0, n = 100):
 
 
 def MC_prediction(env, policy, discount, n = 100, max_episode_len = 100, verbose = False):
-    assert isinstance(env.action_space, gym.spaces.Discrete)
+    assert isinstance(env.observation_space, gym.spaces.Discrete), "Tabular methods require discrete state space."  
     assert n > 0
     assert max_episode_len > 0
     
@@ -104,20 +145,20 @@ def MC_prediction(env, policy, discount, n = 100, max_episode_len = 100, verbose
             if not s in visited[0:t]:
                 Returns[s].append(G)
 
-    Vs = np.array([np.mean(Returns[s]) if len(Returns[s]) else np.nan for s in env.states()])
+    Vs = np.array([np.mean(Returns[s]) if len(Returns[s]) else np.nan for s in range(env.observation_space.n)])
     return Vs
 
 # this version does not use incremental updates and is very slow!
 def MC_control_ES_textbook(env, discount, n = 100, Q = None, max_episode_len = 100, history = False, verbose = False): 
-    assert isinstance(env.action_space, gym.spaces.Discrete)
+    assert isinstance(env.observation_space, gym.spaces.Discrete), "Tabular methods require discrete state space."  
     assert n > 0
     assert max_episode_len > 0
-    assert Q is None or Q.shape == (len(env.states()), len(env.actions()))
+    assert Q is None or Q.shape == (len(env.states()), env.action_space.n)
     
     policy = random_policy(env)
     
     if Q is None:
-        Q = np.zeros((len(env.states()), len(env.actions())))
+        Q = np.zeros((len(env.states()), env.action_space.n))
     
     # lists that grow are very slow. We should use a running average instead. But this is easier to read and understand.
     Returns = defaultdict(list) # a list for each (s,a)
@@ -136,8 +177,8 @@ def MC_control_ES_textbook(env, discount, n = 100, Q = None, max_episode_len = 1
             print("episode", i," of ", n)
         
         # Sample starting (s,a)
-        s = np.random.choice(env.states())
-        a = np.random.choice(env.actions())
+        s = env.observation_space.sample()
+        a = env.action_space.sample()
         
         episode = sample_episode(env, policy, start_state = s, start_action = a, max_len=max_episode_len, verbose = verbose >1)
         G = 0
@@ -187,18 +228,18 @@ def MC_control_ES(env, discount, n=100, Q=None, max_episode_len=100, history=Fal
         is a list of Q-value functions for each iteration, and ep_list is a list of episodes sampled in each iteration.
     """
     
-    assert isinstance(env.action_space, gym.spaces.Discrete)
+    assert isinstance(env.observation_space, gym.spaces.Discrete), "Tabular methods require discrete state space."  
     assert n > 0
     assert max_episode_len > 0
-    assert Q is None or Q.shape == (len(env.states()), len(env.actions()))
+    assert Q is None or Q.shape == (env.observation_space.n, env.action_space.n)
 
     policy = random_policy(env)
 
     if Q is None:
-        Q = np.zeros((len(env.states()), len(env.actions())))
+        Q = np.zeros((env.observation_space.n, env.action_space.n))
 
     # Count how many first-visit returns have been used for each (s, a)
-    N = np.zeros((len(env.states()), len(env.actions())), dtype=int)
+    N = np.zeros((env.observation_space.n, env.action_space.n), dtype=int)
 
     if history:
         Q_list = []
@@ -213,8 +254,8 @@ def MC_control_ES(env, discount, n=100, Q=None, max_episode_len=100, history=Fal
             print("episode", i, "of", n)
 
         # Exploring starts
-        s = np.random.choice(env.states())
-        a = np.random.choice(env.actions())
+        s = env.observation_space.sample()
+        a = env.action_space.sample()
 
         episode = sample_episode(
             env,

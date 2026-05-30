@@ -1,3 +1,9 @@
+"""This file implements different schedules to reduce the learning rate alpha or
+the exploration rate epsilon over time (used in on-policy methods for GLIE). 
+These are commonly used in reinforcement learning algorithms 
+to improve convergence and performance.
+"""
+
 import numpy as np
 
 class Schedule:

@@ -1,10 +1,18 @@
+"""This file implements temporal difference learning algorithms for policy evaluation and control in gym-classics    
+environments with discrete state spaces. The algorithms include Sarsa(0) and Q-learning, which are fundamental 
+methods in reinforcement learning for learning value functions and optimal policies from experience without requiring a 
+model of the environment.
+"""
+
 import random
 import numpy as np
 from gym_classics.algorithms.policy import random_policy, random_argmax
 from gym_classics.algorithms.schedules import Schedule, ConstantSchedule
 from tqdm import tqdm
+import gymnasium as gym
 
-def Sarsa(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, history = False):
+def Sarsa_0(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, history = False):
+    assert isinstance(env.observation_space, gym.spaces.Discrete), "Tabular methods require discrete state space."  
         
     if not isinstance(alpha, Schedule):
         alpha = ConstantSchedule(alpha)
@@ -68,6 +76,8 @@ def Sarsa(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, histo
 
 
 def Q_learning(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, history = False):
+    assert isinstance(env.observation_space, gym.spaces.Discrete), "Tabular methods require discrete state space."  
+    
     if not isinstance(alpha, Schedule):
         alpha = ConstantSchedule(alpha)
     if not isinstance(epsilon, Schedule):

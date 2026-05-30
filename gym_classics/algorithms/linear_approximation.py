@@ -1,3 +1,8 @@
+"""This file implements linear function approximation algorithms for policy evaluation and control. This is not a tabular approach
+and does not require discrete state spaces. The user needs to implement the state_features function to convert states to feature 
+vectors.
+"""
+ 
 import numpy as np
 from itertools import product
 
@@ -9,14 +14,16 @@ from tqdm import tqdm
 
 def state_features(s,env):
     """
-    Convert the state id into state features. This function needs to be overwritten for the environment
+    Converts a state to a state feature vector. It needs to be overwritten by the user to implement different feature representations. 
+    This could be linear features, tile coding, radial basis functions, Fourier basis functions, or even a neural network.
     
-    :param s: state id
+    :param s: state
     :param env: environment instance   
     
     :return a state feature vector
     """
-    raise NotImplementedError("state_features function must be implemented and overwrite gym_classics.algorithms.linear_approximation.state_features.") 
+    raise NotImplementedError("state_features function needs to be implemented by the user. By default, it just concatenates a constant feature (for the intercept) with the state itself. This is equivalent to linear function approximation with a tabular representation.")
+   
 
 def active_weights(a, sf_len):
     """helper for q_hat()"""
@@ -68,10 +75,6 @@ def MSVE(V, V_true, weight=None):
     return np.sum(weight * (V - V_true)**2)
 
 
-def schedule(episode, value_0=0.001, k=0.001):
-    return value_0 / (1 + k * episode)
-
-
 def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_length=1000, verbose =False):
     """
     Estimate the state-value function using the semi-gradient TD(0) algorithm.
@@ -82,8 +85,7 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
 
     Parameters
     ----------
-    env : GymClassicsBaseEnv
-        Environment following the Gym interface from which episodes are sampled.
+    env : Environment following the Gym interface from which episodes are sampled.
     policy : a deterministic policy as a vector.
     n : int
         Number of episodes to run for value estimation. Must be positive.
@@ -102,7 +104,6 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
     w
         Returns the learned weight vector for the approximate value function.
     """
-    assert isinstance(env, GymClassicsBaseEnv), "env must be an instance of gym.Env"
     assert gamma >= 0 and gamma <= 1, "Gamma must be in [0,1]"
     assert n > 0, "Number of episodes must be positive"
     assert max_episode_length > 0, "Max episode length must be positive"
@@ -110,7 +111,8 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
     if not isinstance(alpha, Schedule):
         alpha = ConstantSchedule(alpha)
 
-    w = np.zeros(state_features(0, env).shape[0])  # Initialize weights (intercept + x and y)
+    state, _ = env.reset()
+    w = np.zeros(len(state_features(state, env)))  # Initialize weights (intercept + x and y)
 
     for episode in tqdm(range(n), desc="Semi-Gradient TD(0)", disable=verbose):
         state, _ = env.reset()
@@ -123,7 +125,7 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
             done = terminated or truncated
             
             # Semi-gradient TD(0) update
-            # Note: v_hat(terminal, w) needsi to be 0
+            # Note: v_hat(terminal, w) needs to be 0
             if terminated:
                 w += alpha(episode) * (reward - v_hat(state, w, env)) * state_features(state, env)    
             else: 
@@ -151,8 +153,7 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
 
     Parameters
     ----------
-    env : GymClassicsBaseEnv
-        Episodic environment used to generate experience.
+    env : Episodic environment used to generate experience.
     n : int
         Number of episodes over which to perform control learning.
     epsilon : float
@@ -175,7 +176,6 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
         Returns the learned weight vector for the approximate value function.
     """
     
-    assert isinstance(env, GymClassicsBaseEnv), "env must be an instance of gym.Env"
     assert gamma >= 0 and gamma <= 1, "Gamma must be in [0,1]"
     assert n > 0, "Number of episodes must be positive"
     assert max_episode_length > 0, "Max episode length must be positive"
@@ -185,10 +185,11 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
     if not isinstance(epsilon, Schedule):
         epsilon = ConstantSchedule(epsilon)
 
-    sf_len = state_features(0, env).shape[0]-1
+    state, _ = env.reset()
+    sf_len = len(state_features(state, env))-1
 
     if w is None:
-        w = np.zeros(1 + state_features(0, env).shape[0] * env.action_space.n)  # Initialize weights (intercept + action weights)
+        w = np.zeros(1 + len(state_features(state, env)) * env.action_space.n)  # Initialize weights (intercept + action weights)
 
     if history:
         ws = []

@@ -1,3 +1,9 @@
+"""This file implements dynamic programming algorithms for solving Markov Decision Processes (MDPs) 
+in gym-classics environments with model access.
+The algorithms include value iteration and policy iteration, which are fundamental methods in reinforcement learning for 
+computing optimal policies and value functions.
+"""
+
 import numpy as np
 from gym_classics.algorithms.policy import random_policy, random_argmax
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
@@ -24,10 +30,6 @@ def backup(env, discount, V, state, action):
 
 ### Value Iteration
 
-def infinite_loop():
-  while condition:
-    yield
-
 def value_iteration(env, discount, precision=1e-3, history = False, verbose = False):
     """Performs value iteration for the given environment.
 
@@ -42,7 +44,7 @@ def value_iteration(env, discount, precision=1e-3, history = False, verbose = Fa
         The optimal value function V. If history is True, returns a list of intermediate value functions.
     """
     
-    assert isinstance(env, GymClassicsBaseEnv)
+    assert isinstance(env, GymClassicsBaseEnv), "Value iteration requires a gym-classics environment with model access to the environment." 
     assert 0.0 <= discount <= 1.0
     assert precision > 0.0
     
@@ -96,11 +98,11 @@ def policy_evaluation(env, discount, policy, precision=1e-3, max_backups=1000):
         The value function for the given policy.
     """
     
-    assert isinstance(env, GymClassicsBaseEnv)
+    assert isinstance(env, GymClassicsBaseEnv), "Value iteration requires a gym-classics environment with model access to the environment." 
     assert 0.0 <= discount <= 1.0
     assert precision > 0.0
     
-    V = np.zeros(policy.shape, dtype=np.float64)
+    V = np.zeros(len(policy), dtype=np.float64)
 
     while True:
         V_old = V.copy()
@@ -128,6 +130,7 @@ def policy_improvement(env, discount, policy, V_policy, precision=1e-3):
     Returns:
         A tuple (improved_policy, stable) where stable is True if the policy did not change.
     """
+    
     policy_old = policy.copy()
     V_old = V_policy.copy()
 
@@ -158,7 +161,7 @@ def policy_iteration(env, discount, precision=1e-3, max_backups=1000, history = 
         The optimal policy. If history is True, returns a tuple (policy_list, V_list) containing lists of intermediate policies and value functions.
     """
     
-    assert isinstance(env, GymClassicsBaseEnv)
+    assert isinstance(env, GymClassicsBaseEnv), "Value iteration requires a gym-classics environment with model access to the environment." 
     assert 0.0 <= discount <= 1.0
     assert precision > 0.0
 

@@ -1,3 +1,14 @@
+"""This file implements policy gradient methods for learning parameterized policies.
+The main algorithm implemented is REINFORCE, which is a Monte Carlo policy gradient method that updates policy 
+parameters based on the returns observed in sampled episodes. The policy is represented using a softmax function 
+over linear state-action features, and the algorithm estimates the policy gradient using the log-likelihood of actions taken 
+in the episodes. This implementation allows for learning stochastic policies that can handle exploration and exploitation in 
+reinforcement learning tasks.
+
+The user has to overwrite the state_features function to convert state ids into feature vectors suitable for the environment 
+being used.
+"""
+
 import numpy as np
 
 from gym_classics.algorithms.linear_approximation import state_features, q_hat  
@@ -82,15 +93,15 @@ def REINFORCE(
         Whether to return learning history (returns, episode lengths, parameter values).    
     """
     
-    assert isinstance(env, GymClassicsBaseEnv), "env must be an instance of GymClassicsBaseEnv"
     assert alpha > 0 and alpha <= 1, "alpha must be in (0,1]"
     assert gamma >= 0 and gamma <= 1, "gamma must be in [0  ,1]"
     assert n > 0, "number of episodes must be positive"
     assert max_episode_length > 0, "max episode length must be positive"
     
-    
+
     if theta is None:
-        theta = np.zeros(1+len(state_features(0, env))*env.action_space.n)
+        state, _ = env.reset()
+        theta = np.zeros(1+len(state_features(state, env))*env.action_space.n)
     
     if history:
         returns = []        

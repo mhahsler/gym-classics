@@ -32,8 +32,8 @@ class FourRooms(Gridworld):
 |S    X     |
 """
 
-    def __init__(self):
-        super().__init__(FourRooms.layout)
+    def __init__(self, tabular = True):
+        super().__init__(FourRooms.layout, tabular = tabular)
 
     def _reward(self, state, action, next_state):
         return 1.0 if self._done(state, action, next_state) else 0.0
