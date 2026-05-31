@@ -9,31 +9,14 @@ The user has to overwrite the state_features function to convert state ids into 
 being used.
 """
 
-import numpy as np
-
-from gym_classics.algorithms.linear_approximation import state_features, q_hat  
-from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
-
 from tqdm import tqdm
+import numpy as np
+import warnings
 
-def state_features(s,env):
-    """
-    Convert the state id into state features. This function needs to be overwritten for the environment
-    
-    :param s: state id
-    :return a state feature vector
-    """
-    raise NotImplementedError("state_features function must be implemented and overwrite gym_classics.algorithms.linear_approximation.state_features.") 
-
-def active_weights(a, sf_len):
-    """helper for q_hat()"""
-    return [0] + list(range(a*sf_len+1, a*sf_len+sf_len+1))
-
-def state_action_features(s,a,env):
-    s = state_features(s,env)
-    x = np.zeros(1+len(s)*env.action_space.n)
-    x[active_weights(a, len(s)-1)] = s
-    return x
+import gymnasium as gym
+from gym_classics.algorithms.linear_approximation import state_features, state_action_features, active_weights, q_hat  
+from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
+from gym_classics.algorithms.schedules import ConstantSchedule
 
 def h(s,a,theta,env):
     return np.dot(theta, state_action_features(s,a,env))
@@ -93,11 +76,15 @@ def REINFORCE(
         Whether to return learning history (returns, episode lengths, parameter values).    
     """
     
-    assert alpha > 0 and alpha <= 1, "alpha must be in (0,1]"
     assert gamma >= 0 and gamma <= 1, "gamma must be in [0  ,1]"
     assert n > 0, "number of episodes must be positive"
     assert max_episode_length > 0, "max episode length must be positive"
     
+    if isinstance(env.observation_space, gym.spaces.Discrete):
+        warnings.warn("The environment has a discrete state space. Consider using a tabular method instead of function approximation.")
+    
+    if isinstance(alpha, float):
+        alpha = ConstantSchedule(alpha)
 
     if theta is None:
         state, _ = env.reset()
@@ -113,9 +100,11 @@ def REINFORCE(
         if verbose:
             print(f"Episode {episode+1}/{n}")
         
+        # sample complete episode using pi (this is a MC method)
         episode_data = sample_episode_policy(env, pi, theta, max_episode_length)
         
         for t in range(len(episode_data)):
+            # update policy for each step in the episode using the return observed from that step on
             #print(episode_data[t])
         
             G = np.sum([e[2] for e in episode_data[t:]] * (gamma ** np.arange(len(episode_data[t:]))))
@@ -130,7 +119,7 @@ def REINFORCE(
             if verbose: 
                 print (f"t: {t}, G: {G:.2f}, grad_log_pi: {grad_log_pi}")
             
-            theta += alpha * (gamma**t) * G * grad_log_pi
+            theta += alpha(episode) * (gamma**t) * G * grad_log_pi
             
         if history:
             thetas.append(theta.copy())
@@ -140,3 +129,119 @@ def REINFORCE(
         return theta, {'thetas': thetas, 'returns': returns, 'ep_lens': ep_lens}
        
     return theta
+
+
+def AC(
+    env,
+    n,
+    alpha_policy,
+    alpha_value,
+    gamma,
+    max_episode_length=1000,
+    verbose=False,
+    history=False
+    ):
+    """Actor-Critic: Policy gradient method with linear function approximation and TD learning for the value function.
+    
+    Parameters
+    ----------
+    env : Episodic environment used to generate experience.
+    n : int
+        Number of episodes.
+    alpha_policy : float or Schedule
+        Step size for policy updates. If a float is provided, it will be converted to a ConstantSchedule. If a Schedule is provided, it will be used directly.
+    alpha_value : float or Schedule
+        Step size for value function updates. If a float is provided, it will be converted to a ConstantSchedule. If a Schedule is provided, it will be used directly. 
+    gamma : float
+        Discount factor.
+    max_episode_length : int
+        Maximum number of steps per episode.
+    verbose : bool
+        Whether to print step-by-step diagnostics.
+    history : bool
+        Whether to return learning history (returns, episode lengths, parameter values).
+        
+        Returns
+        -------
+        theta : array-like
+            Final policy parameters after training.
+        w : array-like
+            Final value function parameters after training.
+        history : dict (optional)
+            If history=True, a dictionary containing the learning history with keys: 
+                'thetas': list of policy parameter vectors at each episode,
+                'ws': list of value function parameter vectors at each episode,
+                'returns': list of returns observed at the end of each episode,
+                'ep_lens': list of episode lengths (number of steps) for each episode.
+        """
+    
+    assert gamma >= 0 and gamma <= 1, "gamma must be in [0  ,1]"
+    assert n > 0, "number of episodes must be positive"
+    assert max_episode_length > 0, "max episode length must be positive"
+    
+    if isinstance(env.observation_space, gym.spaces.Discrete):
+        warnings.warn("The environment has a discrete state space. Consider using a tabular method instead of function approximation.")
+    
+    if isinstance(alpha_policy, float):
+        alpha_policy = ConstantSchedule(alpha_policy)
+    if isinstance(alpha_value, float):
+        alpha_value = ConstantSchedule(alpha_value) 
+    
+    state, _ = env.reset()
+    
+    # for simplicity we use the same features for the value function and the policy approximation
+    # value function weights
+    w = np.zeros(len(state_features(state, env)))
+    # policy weights
+    theta = np.zeros(len(state_action_features(state, 0, env)))
+    
+    if history:
+        returns = []        
+        ep_lens = []
+        ws = []
+        ws.append(w.copy())
+        thetas = []
+        thetas.append(theta.copy())
+        
+    for episode in tqdm(range(n), desc="Episodes", disable=verbose):
+        if verbose:
+            print(f"Episode {episode+1}/{n}")
+        
+        disc_factor = 1.0
+        state, _ = env.reset()
+        done = False
+        i = 0
+        G = 0.0
+        
+        while not done and  i < max_episode_length:
+            # use actor to determine next action
+            a = np.random.choice(env.action_space.n, p=pi(state, theta, env))
+
+            # execute action
+            next_state, r, done, _, _ = env.step(a)
+            
+            # use critic to calculate  TD error
+            td_error = r + gamma * np.dot(w, state_features(next_state, env)) - np.dot(w, state_features(state, env))
+            
+            # update critic
+            w += alpha_value(episode) * td_error * state_features(state, env)
+            
+            # update actor
+            grad_log_pi = state_action_features(state, a, env) - sum([pi(state, theta, env)[b] * state_action_features(state, b, env) for b in range(env.action_space.n)])
+            theta += alpha_policy(episode) * disc_factor * td_error * grad_log_pi
+        
+            G += disc_factor * r
+            disc_factor *= gamma      
+            state = next_state
+            i += 1
+            
+        if history:
+            thetas.append(theta.copy())
+            ws.append(w.copy())
+            returns.append(G)
+            ep_lens.append(i)
+            
+    if history:
+        return theta, w, {'thetas': thetas, 'returns': returns, 'ep_lens': ep_lens}
+       
+    return theta, w

@@ -2,10 +2,12 @@
 and does not require discrete state spaces. The user needs to implement the state_features function to convert states to feature 
 vectors.
 """
- 
+
 import numpy as np
 from itertools import product
+import warnings
 
+import gymnasium as gym
 from gym_classics.algorithms.policy import random_policy, random_argmax
 from gym_classics.algorithms.schedules import Schedule, ConstantSchedule
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
@@ -108,10 +110,14 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
     assert n > 0, "Number of episodes must be positive"
     assert max_episode_length > 0, "Max episode length must be positive"
     
+    if isinstance(env.observation_space, gym.spaces.Discrete):
+        warnings.warn("The environment has a discrete state space. Consider using a tabular method instead of function approximation.")
+    
     if not isinstance(alpha, Schedule):
         alpha = ConstantSchedule(alpha)
 
     state, _ = env.reset()
+    
     w = np.zeros(len(state_features(state, env)))  # Initialize weights (intercept + x and y)
 
     for episode in tqdm(range(n), desc="Semi-Gradient TD(0)", disable=verbose):
@@ -179,6 +185,9 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
     assert gamma >= 0 and gamma <= 1, "Gamma must be in [0,1]"
     assert n > 0, "Number of episodes must be positive"
     assert max_episode_length > 0, "Max episode length must be positive"
+
+    if isinstance(env.observation_space, gym.spaces.Discrete):
+        warnings.warn("The environment has a discrete state space. Consider using a tabular method instead of function approximation.")
 
     if not isinstance(alpha, Schedule):
         alpha = ConstantSchedule(alpha)
@@ -270,10 +279,16 @@ def transformation_fourier_basis(min, max, order):
         param max: maximum values for each dimension
         param order: order of the Fourier basis
     """  
+    
+    min = np.array(min)
+    max = np.array(max)
     coefs = create_fourier_basis_coefs(len(min), order)
     
     def fourier_basis(s):
         # normalize state to [0,1]
+        s = np.array(s)
+        assert s.shape == min.shape, "State dimension does not match Fourier basis dimension"
+        
         norm_s = (s - min) / (max - min)
         return np.cos(np.pi * np.dot(coefs, norm_s))
     
