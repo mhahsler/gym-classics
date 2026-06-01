@@ -1,4 +1,6 @@
 from cProfile import label
+
+import pygame
 from gym_classics.envs.abstract.base_env import BaseEnv
 from gymnasium.spaces import MultiDiscrete
 
@@ -15,8 +17,9 @@ import matplotlib.cm as cm
 
 class Gridworld(BaseEnv):
     """Abstract class for creating gridworld-type environments."""
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, layout_string, action_labels = ["up", "right", "down", "left"], tabular = True):
+    def __init__(self, layout_string, action_labels = ["up", "right", "down", "left"], tabular = True, render_mode=None):
         """Initializes the gridworld environment from a layout string. The layout string should be a rectangular grid of characters, where each character represents a type of cell:
         - 'S': Start (may be more than one)
         - 'G': Goal (may be more than one)
@@ -31,6 +34,12 @@ class Gridworld(BaseEnv):
         """
         
         self.dims, starts, self._goals, self._blocks, self._extra_labels = parse_gridworld(layout_string)
+        
+        assert render_mode is None or render_mode in self.metadata["render_modes"]
+        self.render_mode = render_mode
+        self.PyGame_window_size = 512  # The size of the PyGame window in pixels
+        self.PyGame_window = None
+        self.PyGame_clock = None
 
         super().__init__(starts, action_labels = action_labels, tabular = tabular, reachable_states = None)
         
@@ -73,6 +82,120 @@ class Gridworld(BaseEnv):
     
     def _done(self, state, action, next_state):
         return state in self._goals
+    
+    def step(self, action):
+        next_state, reward, done, x, info = super().step(action)
+        
+        if self.render_mode == "human":
+            self._render_frame()
+        
+        return next_state, reward, done, x, info
+
+    def reset(self, seed=None, options=None):
+        observation, info = super().reset(seed=seed, options=options)
+        
+        if self.render_mode == "human":
+            self._render_frame()
+        
+        return observation, info
+    
+    def close(self):
+        if self.PyGame_window is not None:
+            pygame.display.quit()
+            pygame.quit()
+            self.PyGame_window = None
+            self.PyGame_clock = None
+        
+        super().close()
+    
+    def render(self):
+        if self.render_mode == "rgb_array":
+            return self._render_frame()
+
+    def _render_frame(self):
+        pix_square_size = self.PyGame_window_size / max(self.dims)
+        display_size = np.array(pix_square_size) * self.dims
+        
+        if self.PyGame_window is None and self.render_mode == "human":
+            pygame.init()
+            pygame.display.init()
+            self.PyGame_window = pygame.display.set_mode(display_size)
+        if self.PyGame_clock is None and self.render_mode == "human":
+            self.PyGame_clock = pygame.time.Clock()
+
+        canvas = pygame.Surface(display_size)
+        canvas.fill((255, 255, 255))
+
+        # draw the goal
+        for g in self._goals:
+            pos = np.array(g)
+            pos[1] = self.dims[1] - pos[1] - 1
+            pygame.draw.rect(
+                canvas,
+                (0, 128, 0),
+                pygame.Rect(
+                    pix_square_size * pos,
+                    (pix_square_size, pix_square_size),
+                ),
+            )
+     
+        # unreachable squares
+        for g in np.argwhere(self.to_matrix() == -1):
+            pos = np.array(g)
+            pos = np.flip(pos)
+            pos[1] = self.dims[1] - pos[1] - 1
+            pygame.draw.rect(
+                canvas,
+                (72, 72, 72),
+                pygame.Rect(
+                    pix_square_size * pos,
+                    (pix_square_size, pix_square_size),
+                ),
+            )
+        
+        # draw the agent
+        pos = np.array(self.state)
+        pos[1] = self.dims[1] - pos[1] - 1
+        pygame.draw.circle(
+            canvas,
+            (0, 0, 255),
+            (pos + .5) * pix_square_size,
+            pix_square_size / 3,
+        )
+
+        # Finally, add some gridlines
+        for x in range(self.dims[1] + 1):
+            pygame.draw.line(
+                canvas,
+                0,
+                (0, pix_square_size * x),
+                (display_size[0], pix_square_size * x),
+                width=3,
+            )
+            
+        for x in range(self.dims[0] + 1):
+            pygame.draw.line(
+                canvas,
+                0,
+                (pix_square_size * x, 0),
+                (pix_square_size * x, display_size[1]),
+                width=3,
+            )
+
+        if self.render_mode == "human":
+            # The following line copies our drawings from `canvas` to the visible window
+            self.PyGame_window.blit(canvas, canvas.get_rect())
+            pygame.event.pump()
+            pygame.display.update()
+
+            # We need to ensure that human-rendering occurs at the predefined framerate.
+            # The following line will automatically add a delay to
+            # keep the framerate stable.
+            self.PyGame_clock.tick(self.metadata["render_fps"])
+        else:  # rgb_array
+            return np.transpose(
+                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
+            )
 
     ### Addition to the interface
     

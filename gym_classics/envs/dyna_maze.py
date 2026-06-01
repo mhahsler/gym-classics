@@ -25,8 +25,8 @@ class DynaMaze(Gridworld):
 |         |
 """
 
-    def __init__(self, tabular = True):
-        super().__init__(DynaMaze.layout, tabular = tabular)
+    def __init__(self, tabular = True, render_mode=None):
+        super().__init__(DynaMaze.layout, tabular = tabular,render_mode=render_mode)
 
     def _reward(self, state, action, next_state):
         return 1.0 if next_state in self._goals else 0.0
