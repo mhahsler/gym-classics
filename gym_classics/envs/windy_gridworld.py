@@ -28,8 +28,8 @@ class WindyGridworld(Gridworld):
 |          |
 """
 
-    def __init__(self, tabular = True, render_mode=None):
-        super().__init__(WindyGridworld.layout, tabular = tabular, render_mode=render_mode)
+    def __init__(self, **args):
+        super().__init__(WindyGridworld.layout, **args)
 
     def _next_state(self, state, action):
         wind_strength = self._wind_strength(state)

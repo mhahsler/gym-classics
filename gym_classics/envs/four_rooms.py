@@ -1,11 +1,8 @@
-from gym_classics.envs.abstract.noisy_gridworld import NoisyGridworld
-
+from .abstract.gridworld import Gridworld
 
 class FourRooms(Gridworld):
     """An 11x11 gridworld segmented into four rooms. The agent begins in the bottom-left
-    cell; the goal is in the top-right cell. Actions are noisy; instead of the original
-    transition probabilities, this implementation uses the 80-10-10 rule from
-    `ClassicGridworld`.
+    cell; the goal is in the top-right cell.
 
     **reference:** cite{2} (page 192).
 
@@ -32,11 +29,11 @@ class FourRooms(Gridworld):
 |S    X     |
 """
 
-    def __init__(self, tabular = True, render_mode=None):
-        super().__init__(FourRooms.layout, tabular = tabular, render_mode=render_mode)
+    def __init__(self, **args):
+        super().__init__(FourRooms.layout, **args)
 
-    def _reward(self, state, action, next_state):
-        return 1.0 if self._done(state, action, next_state) else 0.0
-
-    def _done(self, state, action, next_state):
-        return state in self._goals
+#   def _reward(self, state, action, next_state):
+#       return 1.0 if self._done(state, action, next_state) else 0.0
+#
+#    def _done(self, state, action, next_state):
+#        return state in self._goals

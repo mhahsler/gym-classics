@@ -26,8 +26,8 @@ class ClassicGridworld(Gridworld):
 |S   |
 """
 
-    def __init__(self, tabular = True, render_mode = None):
-        super().__init__(ClassicGridworld.layout, tabular = tabular, render_mode=render_mode)
+    def __init__(self, **args):
+        super().__init__(ClassicGridworld.layout, **args)
 
     def _reward(self, state, action, next_state):
         if state in self._goals:

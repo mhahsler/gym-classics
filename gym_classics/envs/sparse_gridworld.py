@@ -29,8 +29,8 @@ class SparseGridworld(NoisyGridworld):
 |          |
 """
 
-    def __init__(self):
-        super().__init__(SparseGridworld.layout)
+    def __init__(self, **args):
+        super().__init__(SparseGridworld.layout, **args)
 
     def _reward(self, state, action, next_state):
         return 1.0 if self._done(state, action, next_state) else 0.0

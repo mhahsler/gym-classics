@@ -19,7 +19,9 @@ class Gridworld(BaseEnv):
     """Abstract class for creating gridworld-type environments."""
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, layout_string, action_labels = ["up", "right", "down", "left"], tabular = True, render_mode=None):
+    def __init__(self, layout_string, action_labels = ["up", "right", "down", "left"], 
+                 goal_reward = 1.0, step_reward = 0.0, 
+                 tabular = True, render_mode=None):
         """Initializes the gridworld environment from a layout string. The layout string should be a rectangular grid of characters, where each character represents a type of cell:
         - 'S': Start (may be more than one)
         - 'G': Goal (may be more than one)
@@ -32,6 +34,9 @@ class Gridworld(BaseEnv):
         param tabular: If True, the environment will use a tabular state representation (i.e., states are represented as integer IDs). 
             If False, states will be represented as their (x,y) coordinates. Defaults to True.
         """
+        
+        self._goal_reward = goal_reward
+        self._step_reward = step_reward
         
         self.dims, starts, self._goals, self._blocks, self._extra_labels = parse_gridworld(layout_string)
         
@@ -77,8 +82,8 @@ class Gridworld(BaseEnv):
         
     def _reward(self, state, action, next_state):      
         if next_state in self._goals: 
-            return 1.0  
-        return 0.0
+            return self._goal_reward 
+        return self._step_reward
     
     def _done(self, state, action, next_state):
         return state in self._goals

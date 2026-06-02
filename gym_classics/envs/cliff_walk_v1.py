@@ -27,10 +27,11 @@ class CliffWalk(Gridworld):
 |S          G|
 """
 
-    def __init__(self, tabular = True, render_mode=None):
+    def __init__(self, goal_reward=0.0, step_reward=-1.0, cliff_reward=-100.0, **args):
         self._cliff = frozenset((x, 0) for x in range(1, 11))
-        super().__init__(CliffWalk.layout, tabular = tabular, render_mode=render_mode)
-    
+        self._cliff_reward = cliff_reward
+        super().__init__(CliffWalk.layout, goal_reward=goal_reward, step_reward=step_reward, **args)
+
     # cliff is unreachable. Leads to the start state    
     def _next_state(self, state, action):
         state, _ = super()._next_state(state, action)
@@ -40,13 +41,13 @@ class CliffWalk(Gridworld):
 
     def _reward(self, state, action, next_state):
         if state in self._goals: 
-            return 0.0
+            return self._goal_reward
         
         n_state, _ = super()._next_state(state, action)
         if n_state in self._cliff: 
-            return -100.0
+            return self._cliff_reward
          
-        return -1.0
+        return self._step_reward
 
     def _done(self, state, action, next_state):
         return state in self._goals
