@@ -8,6 +8,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib.colors as colors
 
 # we need to overwrite:
 # * _next_state
@@ -273,7 +274,7 @@ class Gridworld(BaseEnv):
         """
         Display the a gridworld as an image.
         
-        :param value: The value (e.g., a value function) to display. If None, display state indices.
+        :param V: The value (e.g., a value function) to display. If None, display state indices.
         :param labels: The labels to show on the grid cells in the same order as the value function. If True, show rounded values from V.
         :param policy: The policy to display. If not None, show the policy.
         :param episode: Show an episode
@@ -350,15 +351,17 @@ class Gridworld(BaseEnv):
 
 def _image(m, labels=None, extra = None, title=None, cmap = 'auto', clim = None, origin='lower', colorbar=True):
     
-    if cmap == 'auto':      
-        if (np.any(m < 0.0) and np.any(m > 0.0)) or (not clim is None and clim[0]<0 and clim[1]>0):
-            cmap = "coolwarm"
-            cmap = cm.get_cmap(cmap).copy()
-            cmap.set_bad(color='black')
-        else:
-            cmap = "Reds"
-            cmap = cm.get_cmap(cmap).copy() 
-            cmap.set_bad(color='black')
+    if isinstance(cmap, colors.Colormap):
+        pass
+    else: 
+        if cmap == 'auto':      
+            if (np.any(m < 0.0) and np.any(m > 0.0)) or (not clim is None and clim[0]<0 and clim[1]>0):
+                cmap = "coolwarm"
+            else:
+                cmap = "Reds"
+
+        cmap = cm.get_cmap(cmap).copy() 
+        cmap.set_bad(color='black')
     
     row_labels = range(m.shape[0])
     col_labels = range(m.shape[1])

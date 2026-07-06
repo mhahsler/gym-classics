@@ -91,9 +91,15 @@ def Q_learning(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, 
         Q_list.append(Q.copy())
         return_list = []
         ep_len_list = []
+        #state_visits = np.zeros(env.observation_space.n, dtype=int)
+        # Note we use float so visualization works better
+        state_visits = np.zeros(env.observation_space.n, dtype=float)
 
     for i in tqdm(range(n), desc="Q-Learning", disable=verbose):
         s, r = env.reset()
+        
+        if history:
+            state_visits[s] += 1
           
         done = False
         G = 0
@@ -106,6 +112,9 @@ def Q_learning(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, 
                 a = np.random.choice(env.action_space.n)
             
             sp, r, done, _, _ = env.step(a)
+        
+            if history:
+                state_visits[sp] += 1
         
             if history:
                 G += r * pow(discount, t)
@@ -121,6 +130,6 @@ def Q_learning(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, 
             ep_len_list.append(t)
     
     if history:
-        return Q, {'Qs': Q_list, 'returns': return_list, 'ep_lens': ep_len_list}
+        return Q, {'Qs': Q_list, 'returns': return_list, 'ep_lens': ep_len_list, 'state_visits': state_visits}
           
     return Q
