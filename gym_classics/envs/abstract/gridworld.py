@@ -87,7 +87,7 @@ class Gridworld(BaseEnv):
         return self._step_reward
     
     def _done(self, state, action, next_state):
-        return state in self._goals
+        return next_state in self._goals
     
     def step(self, action):
         next_state, reward, done, x, info = super().step(action)

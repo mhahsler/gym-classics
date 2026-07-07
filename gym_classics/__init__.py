@@ -11,20 +11,12 @@ _registry = (
         'entry_point': 'gym_classics.envs.linear_walks:Walk19'
     },
     {
-        'id': 'ClassicGridworld-v0',
-        'entry_point': 'gym_classics.envs.classic_gridworld:ClassicGridworld'
-    },
-    {
         'id': 'ClassicGridworld-v1',
         'entry_point': 'gym_classics.envs.classic_gridworld_v1:ClassicGridworld'
     },
     {
         'id': 'LMaze-v0',
         'entry_point': 'gym_classics.envs.L_maze:LMazeGridworld'
-    },
-    {
-        'id': 'CliffWalk-v0',
-        'entry_point': 'gym_classics.envs.cliff_walk:CliffWalk'
     },
     {
         'id': 'CliffWalk-v1',
@@ -38,16 +30,16 @@ _registry = (
         'id': 'FourRooms-v0',
         'entry_point': 'gym_classics.envs.four_rooms:FourRooms',
     },
-    {
-        'id': 'JacksCarRental-v0',
-        'entry_point': 'gym_classics.envs.jacks_car_rental:JacksCarRental',
-        'max_episode_steps': 100
-    },
-    {
-        'id': 'JacksCarRentalModified-v0',
-        'entry_point': 'gym_classics.envs.jacks_car_rental:JacksCarRentalModified',
-        'max_episode_steps': 100,
-    },
+    #{
+    #    'id': 'JacksCarRental-v0',
+    #    'entry_point': 'gym_classics.envs.jacks_car_rental:JacksCarRental',
+    #    'max_episode_steps': 100
+    #},
+    #{
+    #    'id': 'JacksCarRentalModified-v0',
+    #    'entry_point': 'gym_classics.envs.jacks_car_rental:JacksCarRentalModified',
+    #    'max_episode_steps': 100,
+    #},
     # {
     #     'id': 'Racetrack1-v0',
     #     'entry_point': 'gym_classics.envs.racetracks:Racetrack1',
@@ -63,18 +55,6 @@ _registry = (
     {
         'id': 'WindyGridworld-v0',
         'entry_point': 'gym_classics.envs.windy_gridworld:WindyGridworld',
-    },
-    {
-        'id': 'WindyGridworldKings-v0',
-        'entry_point': 'gym_classics.envs.windy_gridworld:WindyGridworldKings',
-    },
-    {
-        'id': 'WindyGridworldKingsNoOp-v0',
-        'entry_point': 'gym_classics.envs.windy_gridworld:WindyGridworldKingsNoOp',
-    },
-    {
-        'id': 'WindyGridworldKingsStochastic-v0',
-        'entry_point': 'gym_classics.envs.windy_gridworld:WindyGridworldKingsStochastic',
     }
 )
 

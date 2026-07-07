@@ -31,9 +31,3 @@ class FourRooms(Gridworld):
 
     def __init__(self, **args):
         super().__init__(FourRooms.layout, **args)
-
-#   def _reward(self, state, action, next_state):
-#       return 1.0 if self._done(state, action, next_state) else 0.0
-#
-#    def _done(self, state, action, next_state):
-#        return state in self._goals

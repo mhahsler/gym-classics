@@ -26,13 +26,14 @@ class ClassicGridworld(Gridworld):
 |S   |
 """
 
-    def __init__(self, **args):
-        super().__init__(ClassicGridworld.layout, **args)
+    def __init__(self, goal_reward = 1.0, trap_reward = -1.0, step_reward = -0.04, **args):
+        self._trap_reward = trap_reward
+        super().__init__(ClassicGridworld.layout, goal_reward = goal_reward, step_reward = step_reward, **args)
 
     def _reward(self, state, action, next_state):
         if state in self._goals:
             return 0.0
-        return {(3, 1): -1.0, (3, 2): 1.0}.get(next_state, -0.04)
+        return {(3, 1): self._trap_reward, (3, 2): self._goal_reward}.get(next_state, self._step_reward)
 
     def _done(self, state, action, next_state):
         return next_state in self._goals

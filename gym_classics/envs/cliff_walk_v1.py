@@ -40,7 +40,7 @@ class CliffWalk(Gridworld):
         return state, 1.0
 
     def _reward(self, state, action, next_state):
-        if state in self._goals: 
+        if next_state in self._goals: 
             return self._goal_reward
         
         n_state, _ = super()._next_state(state, action)
@@ -50,4 +50,4 @@ class CliffWalk(Gridworld):
         return self._step_reward
 
     def _done(self, state, action, next_state):
-        return state in self._goals
+        return next_state in self._goals
