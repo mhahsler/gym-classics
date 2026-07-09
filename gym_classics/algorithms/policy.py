@@ -9,13 +9,19 @@ import gymnasium as gym
 
 # np.argmax does not break ties randomly
 def random_argmax(x, axis = None):
-        if axis is None:
-            return np.random.choice(np.where(x == np.max(x))[0])
-        else:
-            return np.apply_along_axis(random_argmax, axis, x)
+    """
+    Argmax that breaks ties randomly. If axis is None, returns a single index. 
+    If axis is specified, returns an array of indices along that axis.
+    """
+    if axis is None:
+        return np.random.choice(np.where(x == np.max(x))[0])
+    else:
+        return np.apply_along_axis(random_argmax, axis, x)
 
 def make_multidiscrete_policy(policy, env):
-    """Converts a tabular policy vector to a multi-discrete tabular policy stored in a dictionary that can be used for sample."""
+    """
+    Converts a tabular policy vector to a multi-discrete tabular policy stored in a dictionary that can be used for sample.
+    """
     assert isinstance(env.observation_space, gym.spaces.MultiDiscrete), "Requires an environment with a multi-discrete state spaces."
     
     if isinstance(policy, dict):
@@ -28,6 +34,11 @@ def make_multidiscrete_policy(policy, env):
 
 
 def random_policy(env):
+    """
+    Create a random policy for the given environment. 
+    The policy is represented as a numpy array where each entry corresponds to an action for a state. 
+    """
+    
     if isinstance(env.observation_space, gym.spaces.Discrete):
         return np.random.choice(env.action_space.n, size = env.observation_space.n)
     else:
@@ -36,6 +47,11 @@ def random_policy(env):
 
 # only for gym-classics environments!
 def encode_policy(env, policy, type = "text"):
+    """
+    Encode a policy for display. The policy is represented as a numpy array where each entry corresponds to an action for a state.
+    The function returns a list of action names corresponding to the actions in the policy.
+    """
+    
     assert isinstance(env, GymClassicsBaseEnv)
     
     return [env.unwrapped.id2action(a, type = type) for a in policy]
@@ -86,3 +102,20 @@ def greedy_policy_Q(env, Q, discount=1):
     assert 0.0 <= discount <= 1.0
 
     return random_argmax(Q, axis=1)
+
+def epsilon_greedy_action(policy, state = None, epsilon = 0):
+    """
+    Get an epsilon-greedy action for a given tabular policy.
+    
+    :param policy: the policy as a 1-D numpy array
+    :param epsilon: the probability of taking a random action
+    :param state: the current state
+    """
+    
+    if epsilon>0 and np.random.rand() < epsilon:
+        return np.random.choice(len(policy)) if state is None else np.random.choice(len(policy[state]))   
+    
+    if state is None:
+        return random_argmax(policy)
+    else:
+        return random_argmax(policy[state])

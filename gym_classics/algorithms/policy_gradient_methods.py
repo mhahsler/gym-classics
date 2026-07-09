@@ -26,11 +26,18 @@ def pi(s,theta,env):
     exp_hs = np.exp(hs)
     return exp_hs / np.sum(exp_hs)
 
-def sample_episode_policy(env, pi, theta, max_episode_length=1000):
+def sample_episode_approx_policy(env, pi, theta, max_episode_length=1000):
     """
     Sample an episode using the policy defined by pi and theta.
-    Returns a list of (state, action, reward) tuples.
+    
+    :param env: the environment to sample from
+    :param pi: the policy function that takes state, theta, and env as input and
+        returns a probability distribution over actions
+    :param theta: the policy parameters
+    :param max_episode_length: maximum number of steps to sample in the episode
+    :return: a list of (state, action, reward, next_state) tuples representing the sampled episode
     """
+
     s, _ = env.reset()
     episode_data = []
     
@@ -44,6 +51,19 @@ def sample_episode_policy(env, pi, theta, max_episode_length=1000):
             break
     
     return episode_data
+
+def choose_action_w(env, pi, theta, state):
+    """
+    Choose an action based on the policy defined by pi and theta for the given state.
+    
+    :param env: the environment
+    :param pi: the policy function that takes state, theta, and env as input and
+        returns a probability distribution over actions 
+    :param theta: the policy parameters
+    :param state: the current state
+    :return: the chosen action
+    """
+    return np.random.choice(env.action_space.n, p=pi(state, theta, env))
 
 def REINFORCE(
     env,
@@ -88,7 +108,7 @@ def REINFORCE(
 
     if theta is None:
         state, _ = env.reset()
-        theta = np.zeros(1+len(state_features(state, env))*env.action_space.n)
+        theta = np.zeros(len(state_action_features(state, 0, env)))
     
     if history:
         returns = []        
@@ -101,7 +121,7 @@ def REINFORCE(
             print(f"Episode {episode+1}/{n}")
         
         # sample complete episode using pi (this is a MC method)
-        episode_data = sample_episode_policy(env, pi, theta, max_episode_length)
+        episode_data = sample_episode_approx_policy(env, pi, theta, max_episode_length)
         
         for t in range(len(episode_data)):
             # update policy for each step in the episode using the return observed from that step on

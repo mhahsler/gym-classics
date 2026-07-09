@@ -5,7 +5,7 @@ The user needs to implement the state_features function to convert states to fea
 import numpy as np
 from itertools import product
 
-from gym_classics.algorithms.linear_approximation import state_features, q_hat  
+from gym_classics.algorithms.linear_approximation import state_features, state_action_features, q_hat, epsilon_greedy_action_w
 from gym_classics.algorithms.schedules import Schedule, ConstantSchedule
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
@@ -87,7 +87,7 @@ def semi_gradient_Sarsa_lambda(
 
     if w is None:
         state, _ = env.reset()
-        w = np.zeros(1 + len(state_features(state, env)) * env.action_space.n)
+        w = np.zeros(len(state_action_features(state, 0, env)))
 
     if history:
         ws = []
@@ -95,15 +95,10 @@ def semi_gradient_Sarsa_lambda(
         returns = []
         ep_lens = []
 
-    def epsilon_greedy_action(state, epsilon):
-        if np.random.rand() < epsilon:
-            return env.action_space.sample()
-        q_values = [q_hat(state, a, w, env) for a in range(env.action_space.n)]
-        return np.argmax(q_values)
 
     for episode in tqdm(range(n), desc="Semi-Gradient SARSA(lambda)", disable=verbose):
         state, _ = env.reset()
-        action = epsilon_greedy_action(state, epsilon(episode))
+        action = epsilon_greedy_action_w(env, w ,state, epsilon(episode))
 
         # eligibility trace vector, same size as w
         z = np.zeros_like(w)
@@ -129,7 +124,7 @@ def semi_gradient_Sarsa_lambda(
             if terminated:
                 delta = reward - q_hat(state, action, w, env)
             else:
-                next_action = epsilon_greedy_action(next_state, epsilon(episode))
+                next_action = epsilon_greedy_action_w(env, w, next_state, epsilon(episode))
                 delta = reward + gamma * q_hat(next_state, next_action, w, env) - q_hat(state, action, w, env)
 
             # semi-gradient weight update

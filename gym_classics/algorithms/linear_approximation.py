@@ -62,6 +62,21 @@ def q_hat(s, a, w, env):
     x = state_action_features(s, a, env)
     return np.dot(w, x)
 
+def epsilon_greedy_action_w(env, w, state, epsilon = 0):
+    """
+    Get an epsilon-greedy action for a given policy.
+    
+    :param w: weight vector for the action-value function approximator
+    :param env: environment instance
+    :param state: the current state
+    :param epsilon: the probability of taking a random action
+    """
+    
+    if epsilon>0 and np.random.rand() < epsilon:
+        return env.action_space.sample()
+    
+    return random_argmax([q_hat(state, a, w, env) for a in range(env.action_space.n)])
+
 
 def MSVE(V, V_true, weight=None):
     """
@@ -117,7 +132,6 @@ def semi_gradient_TD0_estimation(env, policy, n, alpha, gamma, max_episode_lengt
         alpha = ConstantSchedule(alpha)
 
     state, _ = env.reset()
-    
     w = np.zeros(len(state_features(state, env)))  # Initialize weights (intercept + x and y)
 
     for episode in tqdm(range(n), desc="Semi-Gradient TD(0)", disable=verbose):
@@ -194,29 +208,19 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
     if not isinstance(epsilon, Schedule):
         epsilon = ConstantSchedule(epsilon)
 
-    state, _ = env.reset()
-    sf_len = len(state_features(state, env))-1
-
     if w is None:
-        w = np.zeros(1 + len(state_features(state, env)) * env.action_space.n)  # Initialize weights (intercept + action weights)
+        state, _ = env.reset()
+        w = np.zeros(len(state_action_features(state, 0, env)))
 
     if history:
         ws = []
         ws.append(w.copy())
         returns = []
         ep_lens = []
-
-    # helper used later
-    def epsilon_greedy_action(state, epsilon):
-        if np.random.rand() < epsilon:
-            return env.action_space.sample()
-        else:
-            q_values = [q_hat(state, a, w, env) for a in range(env.action_space.n)]
-            return np.argmax(q_values)
     
     for episode in tqdm(range(n), desc="Semi-Gradient SARSA(0)", disable=verbose):
         state, _ = env.reset()
-        action = epsilon_greedy_action(state, epsilon(episode))
+        action = epsilon_greedy_action_w(env, w, state, epsilon(episode))
         done = False
 
         i = 0
@@ -234,7 +238,7 @@ def semi_gradient_Sarsa_0(env, n, epsilon, alpha, gamma, w = None, max_episode_l
                 w += alpha(episode) * (reward - q_hat(state, action, w, env)) * x
                 
             else:
-                next_action = epsilon_greedy_action(next_state, epsilon(episode))
+                next_action = epsilon_greedy_action_w(env, w, next_state, epsilon(episode))
                 w += alpha(episode) * (reward + gamma * q_hat(next_state, next_action, w, env) - q_hat(state, action, w, env)) * x
 
             if verbose:
