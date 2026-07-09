@@ -1,44 +1,17 @@
 import numpy as np
 
-
 def clip(x, low, high):
     """A scalar version of numpy.clip. Much faster because it avoids memory allocation."""
     return min(max(x, low), high)
 
 
-
-def print_racetrack(env, V):
-    grid_values = np.zeros(env._dims)
-
-    reachable_positions = [pos for (pos, _) in env._reachable_states]
-    velocities = [(x, y) for x in range(env._max_velocity + 1)
-                            for y in range(env._max_velocity + 1)]
-
-    # Helper function to get reachable velocity pairings in this position
-    def valid_states_in_position(pos):
-        states = [(pos, vel) for vel in velocities]
-        return np.asarray([env._encode(s) for s in states if s in env._reachable_states])
-
-    # Set each cell to be the maximum value over the velocities
-    for x in range(env._dims[0]):
-        for y in range(env._dims[1]):
-            pos = (x, y)
-            if pos in reachable_positions:
-                states = valid_states_in_position(pos)
-                grid_values[x, y] = np.max(V[states])
-            else:
-                grid_values[x, y] = np.nan
-
-    # First get the string length of the longest number
-    formatter = lambda v: '{:+.2f}'.format(v)
-    maxlen = max([len(formatter(v)) for v in grid_values.flatten()])
-
-    # Now we can actually print the values
-    for y in reversed(range(env._dims[1])):
-        for x in range(env._dims[0]):
-            v = grid_values[x,y]
-            if not np.isnan(v):
-                print(formatter(v).rjust(maxlen), end=' ')
-            else:
-                print(' ' * maxlen, end=' ')
-        print()
+# np.argmax does not break ties randomly
+def random_argmax(x, axis = None):
+    """
+    Argmax that breaks ties randomly. If axis is None, returns a single index. 
+    If axis is specified, returns an array of indices along that axis.
+    """
+    if axis is None:
+        return np.random.choice(np.where(x == np.max(x))[0])
+    else:
+        return np.apply_along_axis(random_argmax, axis, x)

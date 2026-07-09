@@ -5,11 +5,14 @@ with discrete state spaces.
 import numpy as np
 import random
 from collections import defaultdict
+from tqdm import tqdm
+
 import gymnasium as gym
+
 from gym_classics.envs.abstract.gridworld import Gridworld
 from gym_classics.envs.abstract.base_env import BaseEnv
-from gym_classics.algorithms.policy import random_policy, random_argmax, make_multidiscrete_policy
-from tqdm import tqdm
+from gym_classics.algorithms.policy import random_policy, make_multidiscrete_policy
+from gym_classics.utils import random_argmax
 
 def states(env):
     """Returns a list of all states in the environment."""

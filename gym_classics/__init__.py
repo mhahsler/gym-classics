@@ -4,31 +4,31 @@ import warnings
 _registry = (
     {
         'id': '5Walk-v0',
-        'entry_point': 'gym_classics.envs.linear_walks:Walk5'
+        'entry_point': 'gym_classics.envs.gym_classics.linear_walks:Walk5'
     },
     {
         'id': '19Walk-v0',
-        'entry_point': 'gym_classics.envs.linear_walks:Walk19'
+        'entry_point': 'gym_classics.envs.gym_classics.linear_walks:Walk19'
     },
     {
         'id': 'ClassicGridworld-v1',
-        'entry_point': 'gym_classics.envs.classic_gridworld_v1:ClassicGridworld'
+        'entry_point': 'gym_classics.envs.gym_classics.classic_gridworld_v1:ClassicGridworld'
     },
     {
         'id': 'LMaze-v0',
-        'entry_point': 'gym_classics.envs.L_maze:LMazeGridworld'
+        'entry_point': 'gym_classics.envs.gym_classics.L_maze:LMazeGridworld'
     },
     {
         'id': 'CliffWalk-v1',
-        'entry_point': 'gym_classics.envs.cliff_walk_v1:CliffWalk'
+        'entry_point': 'gym_classics.envs.gym_classics.cliff_walk_v1:CliffWalk'
     },
     {
         'id': 'DynaMaze-v0',
-        'entry_point': 'gym_classics.envs.dyna_maze:DynaMaze',
+        'entry_point': 'gym_classics.envs.gym_classics.dyna_maze:DynaMaze',
     },
     {
         'id': 'FourRooms-v0',
-        'entry_point': 'gym_classics.envs.four_rooms:FourRooms',
+        'entry_point': 'gym_classics.envs.gym_classics.four_rooms:FourRooms',
     },
     #{
     #    'id': 'JacksCarRental-v0',
@@ -50,18 +50,18 @@ _registry = (
     # },
     {
         'id': 'SparseGridworld-v0',
-        'entry_point': 'gym_classics.envs.sparse_gridworld:SparseGridworld',
+        'entry_point': 'gym_classics.envs.gym_classics.sparse_gridworld:SparseGridworld',
     },
     {
         'id': 'WindyGridworld-v0',
-        'entry_point': 'gym_classics.envs.windy_gridworld:WindyGridworld',
+        'entry_point': 'gym_classics.envs.gym_classics.windy_gridworld:WindyGridworld',
     }
 )
 
 
 _backend = None
 
-def register(backend='gym'):
+def register(backend='gymnasium'):
     global _backend
     if _backend is not None:
         warnings.warn("gym-classics environments were already registered for {}; "

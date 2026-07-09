@@ -5,9 +5,11 @@ computing optimal policies and value functions.
 """
 
 import numpy as np
-from gym_classics.algorithms.policy import random_policy, random_argmax
-from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 from tqdm import tqdm
+
+from gym_classics.utils import random_argmax
+from gym_classics.algorithms.policy import random_policy
+from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 def backup(env, discount, V, state, action):
     """Computes the Bellman backup for a given state and action.

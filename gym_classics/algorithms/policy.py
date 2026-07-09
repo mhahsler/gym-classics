@@ -4,19 +4,11 @@ It includes functions for creating random policies, encoding policies for displa
 
 import numpy as np
 import random
-from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
+
 import gymnasium as gym
 
-# np.argmax does not break ties randomly
-def random_argmax(x, axis = None):
-    """
-    Argmax that breaks ties randomly. If axis is None, returns a single index. 
-    If axis is specified, returns an array of indices along that axis.
-    """
-    if axis is None:
-        return np.random.choice(np.where(x == np.max(x))[0])
-    else:
-        return np.apply_along_axis(random_argmax, axis, x)
+from gym_classics.utils import random_argmax
+from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 
 def make_multidiscrete_policy(policy, env):
     """

@@ -6,10 +6,13 @@ model of the environment.
 
 import random
 import numpy as np
-from gym_classics.algorithms.policy import random_policy, random_argmax
-from gym_classics.algorithms.schedules import Schedule, ConstantSchedule
 from tqdm import tqdm
+
 import gymnasium as gym
+
+from gym_classics.utils import random_argmax
+from gym_classics.algorithms.policy import random_policy
+from gym_classics.algorithms.schedules import Schedule, ConstantSchedule
 
 def Sarsa_0(env, discount, alpha, epsilon, Q=None, n = 100, verbose = False, history = False):
     assert isinstance(env.observation_space, gym.spaces.Discrete), "Tabular methods require discrete state space."  

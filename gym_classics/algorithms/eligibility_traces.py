@@ -1,15 +1,13 @@
 """This file implements the semi-gradient SARSA(lambda) algorithm for control with linear function approximation and eligibility traces. 
 The user needs to implement the state_features function to convert states to feature vectors."""
 
-
 import numpy as np
 from itertools import product
+from tqdm import tqdm
 
 from gym_classics.algorithms.linear_approximation import state_features, state_action_features, q_hat, epsilon_greedy_action_w
 from gym_classics.algorithms.schedules import Schedule, ConstantSchedule
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
-
-from tqdm import tqdm
 
 def state_features(s, env):
     """

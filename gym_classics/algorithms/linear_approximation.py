@@ -6,13 +6,14 @@ vectors.
 import numpy as np
 from itertools import product
 import warnings
+from tqdm import tqdm
 
 import gymnasium as gym
-from gym_classics.algorithms.policy import random_policy, random_argmax
+
+from gym_classics.utils import random_argmax
+from gym_classics.algorithms.policy import random_policy
 from gym_classics.algorithms.schedules import Schedule, ConstantSchedule
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
-
-from tqdm import tqdm
 
 def state_features(s,env):
     """

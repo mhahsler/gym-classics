@@ -14,6 +14,7 @@ import numpy as np
 import warnings
 
 import gymnasium as gym
+
 from gym_classics.algorithms.linear_approximation import state_features, state_action_features, active_weights, q_hat  
 from gym_classics.envs.abstract.base_env import BaseEnv as GymClassicsBaseEnv
 from gym_classics.algorithms.schedules import ConstantSchedule
